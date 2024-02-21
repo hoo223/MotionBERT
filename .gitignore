@@ -1,0 +1,34 @@
+
+custom_codes/Canonical/canonical_test-1.mp4
+
+custom_codes/Canonical/canonical_test1.mp4
+
+custom_codes/Canonical/canonical_test2.mp4
+
+custom_codes/Canonical/canonical_test3.mp4
+
+custom_codes/Canonical/test-1.mp4
+
+custom_codes/Canonical/test1.mp4
+
+custom_codes/Canonical/test3.mp4
+
+custom_codes/DHDST/S1_Waiting 1_torso_frame_2d.mp4
+
+custom_codes/DHDST/S1_Waiting 1_torso_frame_3d.mp4
+
+data/
+
+wandb/
+
+output_videos/
+
+checkpoint/
+
+__pycache__/
+
+Figures/
+
+custom_codes/MotionBERT_analysis/h36m_test.pkl
+
+custom_codes/test_utils.py
