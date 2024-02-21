@@ -1,0 +1,2 @@
+python train_DHDSTformer.py --config configs/pose3d/DHDST_kookmin_total_with_kookmin_setting_s0258_test_lg1.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/DHDST_kookmin_total_with_kookmin_setting_s0258_test_lg1
+python train_DHDSTformer.py --config configs/pose3d/DHDST_kookmin_total_with_kookmin_setting_s0258_test.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/DHDST_kookmin_total_with_kookmin_setting_s0258_test

@@ -1,0 +1,52 @@
+# # lg 10
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_lg10.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_lg10
+# # lv, lg 10
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_lv10_lg10.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_lv10_lg10
+# # av 10
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_av10.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_av10
+# # pv 0
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_pv0.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_pv0
+# # pv 10
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_pv10.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_pv10
+
+# # a 1000 lg 1000
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_a1000_lg1000.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_a1000_lg1000
+# # sc 0
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sc0.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sc0
+# # sc 1
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sc1.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sc1
+# # pv 10 av 10 noise
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_pv10_av10_with_noise.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_pv10_av10_with_noise
+
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_a1000_lg1000.yaml --evaluate checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_a1000_lg1000/best_epoch.bin
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sc0.yaml --evaluate checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sc0/best_epoch.bin
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sc1.yaml --evaluate checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sc1/best_epoch.bin
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_pv10_av10_with_noise.yaml --evaluate checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_pv10_av10_with_noise/best_epoch.bin
+
+# # sym 0.5
+# #python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sym05.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sym05
+# # sym 1
+# #python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sym1.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sym1
+# # sym 5
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sym5.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sym5
+# # sym 10
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sym10.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sym10
+# # sym 20
+# #python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sym20.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sym20
+# # sym 50
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sym50.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sym50
+# # sym 100
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sym100.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sym100
+# # sym 1000
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sym1000.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sym1000
+# sym 10000
+python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sym10000.yaml --pretrained checkpoint/pose3d/FT_MB_release_fit3d_all_train_except_target_action --checkpoint checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sym10000
+
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sym05.yaml --evaluate checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sym05/best_epoch.bin
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sym1.yaml --evaluate checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sym1/best_epoch.bin
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sym5.yaml --evaluate checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sym5/best_epoch.bin
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sym10.yaml --evaluate checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sym10/best_epoch.bin
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sym20.yaml --evaluate checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sym20/best_epoch.bin
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sym50.yaml --evaluate checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sym50/best_epoch.bin
+# python train_kookmin.py --config configs/pose3d/MB_ft_h36m_kookmin_total_with_kookmin_setting_s0258_test_sym100.yaml --evaluate checkpoint/pose3d/FT_MB_release_kookmin_total_with_kookmin_setting_s0258_test_sym100/best_epoch.bin
+
