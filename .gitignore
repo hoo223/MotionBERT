@@ -32,3 +32,5 @@ Figures/
 custom_codes/MotionBERT_analysis/h36m_test.pkl
 
 custom_codes/test_utils.py
+
+custom_codes/AIHUB_analysis/
