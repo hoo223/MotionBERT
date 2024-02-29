@@ -36,3 +36,5 @@ custom_codes/test_utils.py
 custom_codes/AIHUB_analysis/
 
 *.pyc
+
+*.mp4

@@ -35,4 +35,3 @@ if not os.path.exists(root_path):
 
 save_clips("train", root_path, train_data, train_labels)
 save_clips("test", root_path, test_data, test_labels)
-

@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument('-p', '--pretrained', default='checkpoint', type=str, metavar='PATH', help='pretrained checkpoint directory')
     parser.add_argument('-r', '--resume', default='', type=str, metavar='FILENAME', help='checkpoint to resume (file name)')
     parser.add_argument('-e', '--evaluate', default='', type=str, metavar='FILENAME', help='checkpoint to evaluate (file name)')
-    parser.add_argument('-ms', '--selection', default='latest_epoch.bin', type=str, metavar='FILENAME', help='checkpoint to finetune (file name)')
+    parser.add_argument('-ms', '--selection', default='best_epoch.bin', type=str, metavar='FILENAME', help='checkpoint to finetune (file name)')
     parser.add_argument('-sd', '--seed', default=0, type=int, help='random seed')
     opts = parser.parse_args()
     return opts
@@ -58,12 +58,15 @@ def evaluate(args, model_pos, test_loader, datareader):
     results_all = []
     model_pos.eval()            
     with torch.no_grad():
-        for batch_input, batch_gt in tqdm(test_loader): # batch_input: normalized joint_2d, batch_gt: normalized joint3d_image
+        for batch_input, batch_gt in tqdm(test_loader):
             N, T = batch_gt.shape[:2]
             if torch.cuda.is_available():
                 batch_input = batch_input.cuda()
             if args.no_conf:
                 batch_input = batch_input[:, :, :, :2]
+            if args.canonical:
+                batch_input -= batch_input[:, :, 0:1, :] # root-relative
+                batch_gt -= batch_gt[:, :, 0:1, :]
             if args.flip:    
                 batch_input_flip = flip_data(batch_input)
                 predicted_3d_pos_1 = model_pos(batch_input)
@@ -73,7 +76,7 @@ def evaluate(args, model_pos, test_loader, datareader):
             else:
                 predicted_3d_pos = model_pos(batch_input)
             if args.rootrel:
-                predicted_3d_pos[:,:,0,:] = 0     # [N,T,17,3]
+                predicted_3d_pos[:,:,0,:] = 0 # [N,T,17,3] -> pelvis is zero (assume)
             else:
                 batch_gt[:,0,0,2] = 0
 
@@ -81,9 +84,9 @@ def evaluate(args, model_pos, test_loader, datareader):
                 predicted_3d_pos[...,:2] = batch_input[...,:2]
             results_all.append(predicted_3d_pos.cpu().numpy())
     results_all = np.concatenate(results_all)
-    results_all = datareader.denormalize(results_all) # denormalize the predicted 3D poses
+    results_all = datareader.denormalize(results_all)
 
-    np.save('/home/hrai/codes/MotionBERT/custom_codes/h36m_result_denormalized_.npy', results_all)
+    #np.save('/home/hrai/codes/MotionBERT/custom_codes/h36m_result_denormalized_.npy', results_all)
 
     _, split_id_test = datareader.get_split_id()
     actions = np.array(datareader.dt_dataset['test']['action'])
@@ -121,7 +124,7 @@ def evaluate(args, model_pos, test_loader, datareader):
         factor = factor_clips[idx][:,None,None]
         gt = gt_clips[idx]
         pred = results_all[idx]
-        pred *= factor 
+        pred *= factor
         
         # Root-relative Errors
         pred = pred - pred[:,0:1,:]
@@ -154,6 +157,162 @@ def evaluate(args, model_pos, test_loader, datareader):
     print('Protocol #2 Error (P-MPJPE):', e2, 'mm')
     print('----------')
     return e1, e2, results_all
+
+def evaluate_all_part(args, model_pos, test_loader, datareader):
+    print('INFO: Testing')
+    results_all = []
+    model_pos.eval()            
+    with torch.no_grad():
+        for batch_input, batch_gt in tqdm(test_loader):
+            # N, T = batch_gt.shape[:2] # batch_size, 243
+            if torch.cuda.is_available():
+                batch_input = batch_input.cuda()
+            if args.no_conf:
+                batch_input = batch_input[:, :, :, :2]
+            if args.canonical:
+                batch_input -= batch_input[:, :, 0:1, :] # root-relative
+                batch_gt -= batch_gt[:, :, 0:1, :]
+            # inference
+            if args.flip:    
+                batch_input_flip = flip_data(batch_input)
+                predicted_3d_pos_1 = model_pos(batch_input)
+                predicted_3d_pos_flip = model_pos(batch_input_flip)
+                predicted_3d_pos_2 = flip_data(predicted_3d_pos_flip)                   # Flip back
+                predicted_3d_pos = (predicted_3d_pos_1+predicted_3d_pos_2) / 2
+            else:
+                predicted_3d_pos = model_pos(batch_input)
+                
+            # if args.rootrel:
+            #     predicted_3d_pos[:,:,0,:] = 0     # [N,T,17,3]
+            # else:
+            #     batch_gt[:,0,0,2] = 0
+            # if args.gt_2d:
+            #     predicted_3d_pos[...,:2] = batch_input[...,:2]
+            results_all.append(predicted_3d_pos.cpu().numpy())
+    results_all = np.concatenate(results_all)
+    results_all = datareader.denormalize(results_all)
+
+    #np.save('/home/hrai/codes/MotionBERT/custom_codes/h36m_result_denormalized_.npy', results_all)
+
+    _, split_id_test = datareader.get_split_id() # [range(0, 243) ... range(102759, 103002)] 
+    actions = np.array(datareader.dt_dataset['test']['action']) # 103130 ['squat' ...  'kneeup']
+    factors = np.array(datareader.dt_dataset['test']['2.5d_factor']) # 103130 [3.49990559 ... 2.09230852]
+    gts = np.array(datareader.dt_dataset['test']['joints_2.5d_image']) # 103130, 17, 3
+    sources = np.array(datareader.dt_dataset['test']['source']) # 103130 ['S02_6_squat_001' ... 'S08_4_kneeup_001']
+
+    num_test_frames = len(actions)
+    frames = np.array(range(num_test_frames))
+    action_clips = np.array([actions[split_id_test[i]] for i in range(len(split_id_test))]) # actions[split_id_test]
+    factor_clips = np.array([factors[split_id_test[i]] for i in range(len(split_id_test))]) # factors[split_id_test]
+    source_clips = np.array([sources[split_id_test[i]] for i in range(len(split_id_test))]) # sources[split_id_test]
+    frame_clips  = np.array([frames[split_id_test[i]] for i in range(len(split_id_test))]) # frames[split_id_test]
+    gt_clips     = np.array([gts[split_id_test[i]] for i in range(len(split_id_test))]) # gts[split_id_test]
+    
+    total_result_dict = {}
+    pelvis, r_hip, l_hip, torso, neck, l_shoulder, r_shoulder = 0, 1, 4, 7, 8, 11, 14
+    r_knee, r_ankle, l_knee, l_ankle = 2, 3, 5, 6
+    l_elbow, l_wrist, r_elbow, r_wrist = 12, 13, 15, 16
+    nose, head = 9, 10
+    action_names = sorted(set(datareader.dt_dataset['test']['action']))
+    block_list = ['s_09_act_05_subact_02', 
+                  's_09_act_10_subact_02', 
+                  's_09_act_13_subact_01']
+    part_list = ['dhdst_torso', 'arms', 'legs'] # ['whole', 'torso', 'arms', 'legs', 'pelvis', 'r_hip', 'l_hip', 'torso', 'neck', 'l_shoulder', 'r_shoulder', 'l_elbow', 'l_wrist', 'r_elbow', 'r_wrist', 'r_knee', 'r_ankle', 'l_knee', 'l_ankle', 'nose', 'head']
+    for part in part_list:
+        total_result_dict[part] = {
+            'e1_all': np.zeros(num_test_frames),
+            'e2_all': np.zeros(num_test_frames),
+            'oc': np.zeros(num_test_frames),
+            'results': {},
+            'results_procrustes': {}
+        }
+        
+        # To classify the results by action
+        for action in action_names:
+            total_result_dict[part]['results'][action] = []
+            total_result_dict[part]['results_procrustes'][action] = []
+
+
+    for idx in range(len(results_all)):
+        # check if the clip is in the block list
+        source = source_clips[idx][0][:-6]
+        if source in block_list:
+            continue
+        frame_list = frame_clips[idx] # [0 1 ... 242]
+        action = action_clips[idx][0]
+        factor = factor_clips[idx][:,None,None]
+        gt = gt_clips[idx]
+        pred = results_all[idx]
+        pred *= factor # scaling image to world scale
+        
+        # Root-relative Errors
+        pred = pred - pred[:,0:1,:] # (243, 17, 3)
+        gt = gt - gt[:,0:1,:] # (243, 17, 3)
+        
+        err1_per_joint = mpjpe_for_each_joint(pred, gt) # (243, 17)
+        err2_per_joint = p_mpjpe_for_each_joint(pred, gt) # (243, 17)
+        
+        for part in part_list:
+            if part == 'whole': joint_list = [j for j in range(17)]
+            elif part == 'torso': joint_list = [pelvis, r_hip, l_hip, torso, neck, l_shoulder, r_shoulder]
+            elif part == 'dhdst_torso': joint_list = [pelvis, r_hip, l_hip, torso, neck, nose, head, l_shoulder, r_shoulder]
+            elif part == 'arms': joint_list = [l_elbow, l_wrist, r_elbow, r_wrist]
+            elif part == 'legs': joint_list = [r_knee, r_ankle, l_knee, l_ankle]
+            elif part == 'pelvis': joint_list = [pelvis]
+            elif part == 'r_hip': joint_list = [r_hip]
+            elif part == 'l_hip': joint_list = [l_hip]
+            elif part == 'torso': joint_list = [torso]
+            elif part == 'neck': joint_list = [neck]
+            elif part == 'l_shoulder': joint_list = [l_shoulder]
+            elif part == 'r_shoulder': joint_list = [r_shoulder]
+            elif part == 'l_elbow': joint_list = [l_elbow]
+            elif part == 'l_wrist': joint_list = [l_wrist]
+            elif part == 'r_elbow': joint_list = [r_elbow]
+            elif part == 'r_wrist': joint_list = [r_wrist]
+            elif part == 'r_knee' : joint_list = [r_knee]
+            elif part == 'r_ankle': joint_list = [r_ankle]
+            elif part == 'l_knee' : joint_list = [l_knee]
+            elif part == 'l_ankle': joint_list = [l_ankle]
+            elif part == 'nose'   : joint_list = [nose]
+            elif part == 'head'   : joint_list = [head]
+            
+            err1 = np.mean(err1_per_joint[:, joint_list], axis=1) # mpjpe(pred, gt) # (243, )
+            err2 = np.mean(err2_per_joint[:, joint_list], axis=1) # p_mpjpe(pred, gt)
+            total_result_dict[part]['e1_all'][frame_list] += err1 # (243, ) # 각 프레임 별 에러를 더해줌
+            total_result_dict[part]['e2_all'][frame_list] += err2 # (243, ) # 각 프레임 별 에러를 더해줌
+            total_result_dict[part]['oc'][frame_list] += 1
+    
+    # Error per action
+    for idx in range(num_test_frames):
+        for part in part_list:
+            if total_result_dict[part]['e1_all'][idx] > 0:
+                err1 = total_result_dict[part]['e1_all'][idx] / total_result_dict[part]['oc'][idx]
+                err2 = total_result_dict[part]['e2_all'][idx] / total_result_dict[part]['oc'][idx]
+                action = actions[idx]
+                total_result_dict[part]['results'][action].append(err1)
+                total_result_dict[part]['results_procrustes'][action].append(err2)
+            
+    for part in part_list:
+        print('Part:', part)
+        final_result = []
+        final_result_procrustes = []
+        summary_table = prettytable.PrettyTable()
+        summary_table.field_names = ['test_name'] + action_names # first row
+        for action in action_names:
+            final_result.append(np.mean(total_result_dict[part]['results'][action]))
+            final_result_procrustes.append(np.mean(total_result_dict[part]['results_procrustes'][action]))
+        summary_table.add_row(['P1 ({})'.format(part)] + final_result) # second row
+        summary_table.add_row(['P2 ({})'.format(part)] + final_result_procrustes) # third row
+        print(summary_table)
+        
+        # Total Error
+        e1 = np.mean(np.array(final_result))
+        e2 = np.mean(np.array(final_result_procrustes))
+        print('Protocol #1 Error (MPJPE):', e1, 'mm')
+        print('Protocol #2 Error (P-MPJPE):', e2, 'mm')
+        print('----------------------------------------')
+    
+    return e1, e2, results_all, total_result_dict
         
 def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt):
     model_pos.train()
@@ -173,32 +332,59 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
                 batch_gt[:,:,:,2] = batch_gt[:,:,:,2] - batch_gt[:,0:1,0:1,2] # Place the depth of first frame root to 0.
             if args.mask or args.noise:
                 batch_input = args.aug.augment2D(batch_input, noise=(args.noise and has_gt), mask=args.mask)
+            if args.canonical:
+                batch_input -= batch_input[:, :, 0:1, :] # root-relative
+                batch_gt -= batch_gt[:, :, 0:1, :]
+        
         # Predict 3D poses
         predicted_3d_pos = model_pos(batch_input)    # (N, T, 17, 3)
+        if args.only_limb:
+            predicted_3d_pos = predicted_3d_pos[:, :, [2, 3, 5, 6, 12, 13, 15, 16], :]
+            batch_gt = batch_gt[:, :, [2, 3, 5, 6, 12, 13, 15, 16], :]
         
         optimizer.zero_grad()
         if has_3d:
-            loss_3d_pos = loss_mpjpe(predicted_3d_pos, batch_gt)
-            loss_3d_scale = n_mpjpe(predicted_3d_pos, batch_gt)
-            loss_3d_velocity = loss_velocity(predicted_3d_pos, batch_gt)
-            loss_lv = loss_limb_var(predicted_3d_pos)
-            loss_lg = loss_limb_gt(predicted_3d_pos, batch_gt)
-            loss_a = loss_angle(predicted_3d_pos, batch_gt)
-            loss_av = loss_angle_velocity(predicted_3d_pos, batch_gt)
-            loss_total = loss_3d_pos + \
-                         args.lambda_scale       * loss_3d_scale + \
-                         args.lambda_3d_velocity * loss_3d_velocity + \
-                         args.lambda_lv          * loss_lv + \
-                         args.lambda_lg          * loss_lg + \
-                         args.lambda_a           * loss_a  + \
-                         args.lambda_av          * loss_av
-            losses['3d_pos'].update(loss_3d_pos.item(), batch_size)
-            losses['3d_scale'].update(loss_3d_scale.item(), batch_size)
-            losses['3d_velocity'].update(loss_3d_velocity.item(), batch_size)
-            losses['lv'].update(loss_lv.item(), batch_size)
-            losses['lg'].update(loss_lg.item(), batch_size)
-            losses['angle'].update(loss_a.item(), batch_size)
-            losses['angle_velocity'].update(loss_av.item(), batch_size)
+            if args.lambda_3d_pos > 0:
+                loss_3d_pos = loss_mpjpe(predicted_3d_pos, batch_gt)
+                loss_total = loss_3d_pos
+                losses['3d_pos'].update(loss_3d_pos.item(), batch_size)
+            if args.lambda_scale > 0:
+                loss_3d_scale = n_mpjpe(predicted_3d_pos, batch_gt)
+                loss_total += args.lambda_scale * loss_3d_scale
+                losses['3d_scale'].update(loss_3d_scale.item(), batch_size)
+            if args.lambda_3d_velocity > 0:
+                loss_3d_velocity = loss_velocity(predicted_3d_pos, batch_gt)
+                loss_total += args.lambda_3d_velocity * loss_3d_velocity
+                losses['3d_velocity'].update(loss_3d_velocity.item(), batch_size)
+            if args.lambda_lv > 0 and (not args.only_limb):
+                loss_lv = loss_limb_var(predicted_3d_pos)
+                loss_total += args.lambda_lv * loss_lv
+                losses['lv'].update(loss_lv.item(), batch_size)
+            if args.lambda_lg > 0 and (not args.only_limb):
+                loss_lg = loss_limb_gt(predicted_3d_pos, batch_gt)
+                loss_total += args.lambda_lg * loss_lg
+                losses['lg'].update(loss_lg.item(), batch_size)
+            if args.lambda_a > 0 and (not args.only_limb):
+                loss_a = loss_angle(predicted_3d_pos, batch_gt)
+                loss_total += args.lambda_a * loss_a
+                losses['angle'].update(loss_a.item(), batch_size)
+            if args.lambda_av > 0 and (not args.only_limb):
+                loss_av = loss_angle_velocity(predicted_3d_pos, batch_gt)
+                loss_total += args.lambda_av * loss_av
+                losses['angle_velocity'].update(loss_av.item(), batch_size)
+            # loss_total = loss_3d_pos + \
+            #              args.lambda_scale       * loss_3d_scale + \
+            #              args.lambda_3d_velocity * loss_3d_velocity + \
+            #              args.lambda_lv          * loss_lv + \
+            #              args.lambda_lg          * loss_lg + \
+            #              args.lambda_a           * loss_a  + \
+            #              args.lambda_av          * loss_av
+            # losses['3d_pos'].update(loss_3d_pos.item(), batch_size)
+            # losses['3d_velocity'].update(loss_3d_velocity.item(), batch_size)
+            # losses['lv'].update(loss_lv.item(), batch_size)
+            # losses['lg'].update(loss_lg.item(), batch_size)
+            # losses['angle'].update(loss_a.item(), batch_size)
+            # losses['angle_velocity'].update(loss_av.item(), batch_size)
             losses['total'].update(loss_total.item(), batch_size)
         else:
             loss_2d_proj = loss_2d_weighted(predicted_3d_pos, batch_gt, conf)
@@ -207,6 +393,12 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
             losses['total'].update(loss_total.item(), batch_size)
         loss_total.backward()
         optimizer.step()
+        
+        try:
+            if args.test_run:
+                break
+        except:
+            pass
 
 def train_with_config(args, opts):
     print(args)
@@ -316,6 +508,7 @@ def train_with_config(args, opts):
             start_time = time()
             losses = {}
             losses['3d_pos'] = AverageMeter()
+            losses['limb'] = AverageMeter() 
             losses['3d_scale'] = AverageMeter()
             losses['2d_proj'] = AverageMeter()
             losses['lg'] = AverageMeter()
@@ -340,6 +533,7 @@ def train_with_config(args, opts):
                     lr,
                    losses['3d_pos'].avg))
             else:
+                # e1, e2, results_all, total_result_dict = evaluate_all_part(args, model_pos, test_loader, datareader)
                 e1, e2, results_all = evaluate(args, model_pos, test_loader, datareader)
                 print('[%d] time %.2f lr %f 3d_train %f e1 %f e2 %f' % (
                     epoch + 1,
@@ -350,6 +544,7 @@ def train_with_config(args, opts):
                 train_writer.add_scalar('Error P1', e1, epoch + 1)
                 train_writer.add_scalar('Error P2', e2, epoch + 1)
                 train_writer.add_scalar('loss_3d_pos', losses['3d_pos'].avg, epoch + 1)
+                train_writer.add_scalar('loss_limb', losses['limb'].avg, epoch + 1) 
                 train_writer.add_scalar('loss_2d_proj', losses['2d_proj'].avg, epoch + 1)
                 train_writer.add_scalar('loss_3d_scale', losses['3d_scale'].avg, epoch + 1)
                 train_writer.add_scalar('loss_3d_velocity', losses['3d_velocity'].avg, epoch + 1)
@@ -357,6 +552,14 @@ def train_with_config(args, opts):
                 train_writer.add_scalar('loss_lg', losses['lg'].avg, epoch + 1)
                 train_writer.add_scalar('loss_a', losses['angle'].avg, epoch + 1)
                 train_writer.add_scalar('loss_av', losses['angle_velocity'].avg, epoch + 1)
+                # arm_mpjpe = np.mean([np.mean(total_result_dict['arms']['results'][key]) for key in total_result_dict['arms']['results'].keys()])
+                # arm_mpjpe_procrustes = np.mean([np.mean(total_result_dict['arms']['results_procrustes'][key]) for key in total_result_dict['arms']['results_procrustes'].keys()])
+                # leg_mpjpe = np.mean([np.mean(total_result_dict['legs']['results'][key]) for key in total_result_dict['legs']['results'].keys()])
+                # leg_mpjpe_procrustes = np.mean([np.mean(total_result_dict['legs']['results_procrustes'][key]) for key in total_result_dict['legs']['results_procrustes'].keys()])
+                # train_writer.add_scalar('arm P1', arm_mpjpe, epoch + 1)
+                # train_writer.add_scalar('arm P2', arm_mpjpe_procrustes, epoch + 1)
+                # train_writer.add_scalar('leg P1', leg_mpjpe, epoch + 1)
+                # train_writer.add_scalar('leg P2', leg_mpjpe_procrustes, epoch + 1)
                 train_writer.add_scalar('loss_total', losses['total'].avg, epoch + 1)
                 
             # Decay learning rate exponentially
@@ -376,7 +579,14 @@ def train_with_config(args, opts):
                 min_loss = e1
                 save_checkpoint(chk_path_best, epoch, lr, optimizer, model_pos, min_loss)
                 
+            try:
+                if args.test_run:
+                    break
+            except:
+                pass
+                
     if opts.evaluate:
+        # e1, e2, results_all, total_result_dict = evaluate_all_part(args, model_pos, test_loader, datareader)
         e1, e2, results_all = evaluate(args, model_pos, test_loader, datareader)
 
 if __name__ == "__main__":
