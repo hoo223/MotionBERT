@@ -1,0 +1,24 @@
+python train_action_kookmin.py \
+--config configs/action/MB_ft_Kookmin2_train_s11-12_augment_243_50_test_augment_243_50.yaml \
+--pretrained checkpoint/pretrain/MB_release \
+--checkpoint checkpoint/action/FT_MB_release_MB_Kookmin2_Action_Train_S11-12_Augment_243_50_Test_Augment_243_50
+
+python train_action_kookmin.py \
+--config configs/action/MB_ft_Kookmin2_train_s13-14_augment_243_50_test_augment_243_50.yaml \
+--pretrained checkpoint/pretrain/MB_release \
+--checkpoint checkpoint/action/FT_MB_release_MB_Kookmin2_Action_Train_S13-14_Augment_243_50_Test_Augment_243_50
+
+python train_action_kookmin.py \
+--config configs/action/MB_ft_Kookmin2_train_s15-16_augment_243_50_test_augment_243_50.yaml \
+--pretrained checkpoint/pretrain/MB_release \
+--checkpoint checkpoint/action/FT_MB_release_MB_Kookmin2_Action_Train_S15-16_Augment_243_50_Test_Augment_243_50
+
+python train_action_kookmin.py \
+--config configs/action/MB_ft_Kookmin2_train_s17-18_augment_243_50_test_augment_243_50.yaml \
+--pretrained checkpoint/pretrain/MB_release \
+--checkpoint checkpoint/action/FT_MB_release_MB_Kookmin2_Action_Train_S17-18_Augment_243_50_Test_Augment_243_50
+
+python train_action_kookmin.py \
+--config configs/action/MB_ft_Kookmin2_train_s19-20_augment_243_50_test_augment_243_50.yaml \
+--pretrained checkpoint/pretrain/MB_release \
+--checkpoint checkpoint/action/FT_MB_release_MB_Kookmin2_Action_Train_S19-20_Augment_243_50_Test_Augment_243_50

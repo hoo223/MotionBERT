@@ -26,7 +26,14 @@ from lib.data.augmentation import Augmenter2D
 from lib.data.datareader_kookmin import DataReaderKOOKMIN
 from lib.model.loss import *
 
+import logging
 
+mylogger = logging.getLogger("")				
+mylogger.setLevel(logging.INFO)					
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+stream_hander = logging.StreamHandler()			
+stream_hander.setFormatter(formatter)			
+mylogger.addHandler(stream_hander)	
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -35,7 +42,7 @@ def parse_args():
     parser.add_argument('-p', '--pretrained', default='checkpoint', type=str, metavar='PATH', help='pretrained checkpoint directory')
     parser.add_argument('-r', '--resume', default='', type=str, metavar='FILENAME', help='checkpoint to resume (file name)')
     parser.add_argument('-e', '--evaluate', default='', type=str, metavar='FILENAME', help='checkpoint to evaluate (file name)')
-    parser.add_argument('-ms', '--selection', default='latest_epoch.bin', type=str, metavar='FILENAME', help='checkpoint to finetune (file name)')
+    parser.add_argument('-ms', '--selection', default='best_epoch.bin', type=str, metavar='FILENAME', help='checkpoint to finetune (file name)')
     parser.add_argument('-sd', '--seed', default=0, type=int, help='random seed')
     parser.add_argument('-g', '--gpu', default='0, 1', type=str, help='GPU id')
     opts = parser.parse_args()
@@ -435,9 +442,11 @@ def train_with_config(args, opts):
             save_checkpoint(chk_path_latest, epoch, lr, optimizer, model_pos, min_loss)
             if (epoch + 1) % args.checkpoint_frequency == 0:
                 save_checkpoint(chk_path, epoch, lr, optimizer, model_pos, min_loss)
+                mylogger.info(f'Saved checkpoint to {chk_path}')
             if e1 < min_loss:
                 min_loss = e1
                 save_checkpoint(chk_path_best, epoch, lr, optimizer, model_pos, min_loss)
+                mylogger.info(f'Saved best checkpoint to {chk_path_best}')
             try:
                 if args.test_run:
                     break
