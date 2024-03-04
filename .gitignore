@@ -38,3 +38,5 @@ custom_codes/AIHUB_analysis/
 *.pyc
 
 *.mp4
+
+*.npy
