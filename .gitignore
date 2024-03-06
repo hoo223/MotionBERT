@@ -40,3 +40,9 @@ custom_codes/AIHUB_analysis/
 *.mp4
 
 *.npy
+
+input_videos/H36M_from_generation/bbox_info.pkl
+
+*.pkl
+
+*.png

@@ -26,6 +26,8 @@ from lib.data.augmentation import Augmenter2D
 from lib.data.datareader_h36m import DataReaderH36M  
 from lib.model.loss import *
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/pretrain.yaml", help="Path to the config file.")
@@ -65,8 +67,8 @@ def evaluate(args, model_pos, test_loader, datareader):
             if args.no_conf:
                 batch_input = batch_input[:, :, :, :2]
             if args.canonical:
-                batch_input -= batch_input[:, :, 0:1, :] # root-relative
-                batch_gt -= batch_gt[:, :, 0:1, :]
+                batch_input = batch_input - batch_input[:, :, 0:1, :] # root-relative
+                batch_gt = batch_gt - batch_gt[:, :, 0:1, :]
             if args.flip:    
                 batch_input_flip = flip_data(batch_input)
                 predicted_3d_pos_1 = model_pos(batch_input)
@@ -170,8 +172,8 @@ def evaluate_all_part(args, model_pos, test_loader, datareader):
             if args.no_conf:
                 batch_input = batch_input[:, :, :, :2]
             if args.canonical:
-                batch_input -= batch_input[:, :, 0:1, :] # root-relative
-                batch_gt -= batch_gt[:, :, 0:1, :]
+                batch_input = batch_input - batch_input[:, :, 0:1, :] # root-relative
+                batch_gt = batch_gt - batch_gt[:, :, 0:1, :]
             # inference
             if args.flip:    
                 batch_input_flip = flip_data(batch_input)
@@ -333,8 +335,8 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
             if args.mask or args.noise:
                 batch_input = args.aug.augment2D(batch_input, noise=(args.noise and has_gt), mask=args.mask)
             if args.canonical:
-                batch_input -= batch_input[:, :, 0:1, :] # root-relative
-                batch_gt -= batch_gt[:, :, 0:1, :]
+                batch_input = batch_input - batch_input[:, :, 0:1, :] # root-relative
+                batch_gt = batch_gt - batch_gt[:, :, 0:1, :]
         
         # Predict 3D poses
         predicted_3d_pos = model_pos(batch_input)    # (N, T, 17, 3)
