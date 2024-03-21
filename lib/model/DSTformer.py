@@ -71,9 +71,9 @@ class MLP(nn.Module):
         super().__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
-        self.fc1 = nn.Linear(in_features, hidden_features)
+        self.fc1 = nn.Linear(in_features, hidden_features) # 256 -> 256x4
         self.act = act_layer()
-        self.fc2 = nn.Linear(hidden_features, out_features)
+        self.fc2 = nn.Linear(hidden_features, out_features) # 256x4 -> 256
         self.drop = nn.Dropout(drop)
 
     def forward(self, x):
@@ -89,25 +89,25 @@ class Attention(nn.Module):
     def __init__(self, dim, num_heads=8, qkv_bias=False, qk_scale=None, attn_drop=0., proj_drop=0., st_mode='vanilla'):
         super().__init__()
         self.num_heads = num_heads
-        head_dim = dim // num_heads
+        head_dim = dim // num_heads # 256//8 = 32
         # NOTE scale factor was wrong in my original version, can set manually to be compat with prev weights
-        self.scale = qk_scale or head_dim ** -0.5
+        self.scale = qk_scale or head_dim ** -0.5 # sqrt(32)
 
         self.attn_drop = nn.Dropout(attn_drop)
-        self.proj = nn.Linear(dim, dim)
+        self.proj = nn.Linear(dim, dim) # 256 -> 256
         self.mode = st_mode
         if self.mode == 'parallel':
             self.ts_attn = nn.Linear(dim*2, dim*2)
-            self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
-        else:
-            self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
+            self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias) 
+        else: # spatial, temporal
+            self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias) # 256 -> 256 x 3
         self.proj_drop = nn.Dropout(proj_drop)
 
         self.attn_count_s = None
         self.attn_count_t = None
 
-    def forward(self, x, seqlen=1):
-        B, N, C = x.shape
+    def forward(self, x, seqlen=1): # x=(BxF, 17, 256), seqlen=243
+        B, N, C = x.shape # (BxF, 17, 256)
         
         if self.mode == 'series':
             qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
@@ -136,16 +136,16 @@ class Attention(nn.Module):
             q, k, v = qkv[0], qkv[1], qkv[2]   # make torchscript happy (cannot use tensor as tuple)
             x = self.forward_spatial(q, k, v)
         elif self.mode == 'temporal':
-            qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
-            q, k, v = qkv[0], qkv[1], qkv[2]   # make torchscript happy (cannot use tensor as tuple)
+            qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4) # x: (BxF, 17, 256) -> output: (BxF, 17, 256x3) -> reshape: (BxF, 17, 3, 8, 32) -> permute: (3, BxF, 8, 17, 32)
+            q, k, v = qkv[0], qkv[1], qkv[2]   # make torchscript happy (cannot use tensor as tuple) # q, k, v: (BxF, 8, 17, 32)
             x = self.forward_temporal(q, k, v, seqlen=seqlen)
         elif self.mode == 'spatial':
-            qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
-            q, k, v = qkv[0], qkv[1], qkv[2]   # make torchscript happy (cannot use tensor as tuple)
-            x = self.forward_spatial(q, k, v)
+            qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4) # x: (BxF, 17, 256) -> output: (BxF, 17, 256x3) -> reshape: (BxF, 17, 3, 8, 32) -> permute: (3, BxF, 8, 17, 32)
+            q, k, v = qkv[0], qkv[1], qkv[2]   # make torchscript happy (cannot use tensor as tuple) # q, k, v: (BxF, 8, 17, 32)
+            x = self.forward_spatial(q, k, v) # (BxF, 17, 256)
         else:
             raise NotImplementedError(self.mode)
-        x = self.proj(x)
+        x = self.proj(x) # (BxF, 17, 256) -> (BxF, 17, 256)
         x = self.proj_drop(x)
         return x
     
@@ -175,28 +175,29 @@ class Attention(nn.Module):
         x = x.transpose(1,2).reshape(BT, N, C*self.num_heads)
         return x
 
-    def forward_spatial(self, q, k, v):
+    def forward_spatial(self, q, k, v): # q, k, v: (BxF, 8, 17, 32)
         B, _, N, C = q.shape
-        attn = (q @ k.transpose(-2, -1)) * self.scale
+        # scaled dot-product attention
+        attn = (q @ k.transpose(-2, -1)) * self.scale # (BxF, 8, 17, 32) @ (BxF, 8, 32, 17) * (1) = (BxF, 8, 17, 17)
         attn = attn.softmax(dim=-1)
         attn = self.attn_drop(attn)
 
-        x = attn @ v
-        x = x.transpose(1,2).reshape(B, N, C*self.num_heads)
+        x = attn @ v # BxF, 8, 17, 17) @ (BxF, 8, 17, 32) = (BxF, 8, 17, 32)
+        x = x.transpose(1,2).reshape(B, N, C*self.num_heads) # x: (BxF, 8, 17, 32) -> transpose: (BxF, 17, 8, 32) -> reshape: (BxF, 17, 32x8) = (BxF, 17, 256)
         return x
         
-    def forward_temporal(self, q, k, v, seqlen=8):
+    def forward_temporal(self, q, k, v, seqlen=8): # q, k, v: (BxF, 8, 17, 32), seqlen=243
         B, _, N, C = q.shape
-        qt = q.reshape(-1, seqlen, self.num_heads, N, C).permute(0, 2, 3, 1, 4) #(B, H, N, T, C)
-        kt = k.reshape(-1, seqlen, self.num_heads, N, C).permute(0, 2, 3, 1, 4) #(B, H, N, T, C)
-        vt = v.reshape(-1, seqlen, self.num_heads, N, C).permute(0, 2, 3, 1, 4) #(B, H, N, T, C)
+        qt = q.reshape(-1, seqlen, self.num_heads, N, C).permute(0, 2, 3, 1, 4) # (BxF, 8, 17, 32) -> reshape: (B, 243, 8, 17, 32) -> permute: (B, 8, 17, 243, 32) # (B, H, N, T, C) 
+        kt = k.reshape(-1, seqlen, self.num_heads, N, C).permute(0, 2, 3, 1, 4) # (BxF, 8, 17, 32) -> reshape: (B, 243, 8, 17, 32) -> permute: (B, 8, 17, 243, 32) # (B, H, N, T, C)
+        vt = v.reshape(-1, seqlen, self.num_heads, N, C).permute(0, 2, 3, 1, 4) # (BxF, 8, 17, 32) -> reshape: (B, 243, 8, 17, 32) -> permute: (B, 8, 17, 243, 32) # (B, H, N, T, C)
 
-        attn = (qt @ kt.transpose(-2, -1)) * self.scale
+        attn = (qt @ kt.transpose(-2, -1)) * self.scale # (B, 8, 17, 243, 32) @ (B, 8, 17, 32, 243) * (1) = (B, 8, 17, 243, 243)
         attn = attn.softmax(dim=-1)
         attn = self.attn_drop(attn)
 
-        x = attn @ vt #(B, H, N, T, C)
-        x = x.permute(0, 3, 2, 1, 4).reshape(B, N, C*self.num_heads)
+        x = attn @ vt # (B, 8, 17, 243, 243) @ (B, 8, 17, 243, 32) = (B, 8, 17, 243, 32) # (B, H, N, T, C)
+        x = x.permute(0, 3, 2, 1, 4).reshape(B, N, C*self.num_heads) # x:(B, 8, 17, 243, 32) -> permute: (B, 243, 17, 8, 32) -> reshape: (BxF, 17, 256)
         return x
 
     def count_attn(self, attn):
@@ -231,24 +232,24 @@ class Block(nn.Module):
         # nn.Identity(): 입력값을 그대로 출력하는 layer
         self.norm2_s = norm_layer(dim)
         self.norm2_t = norm_layer(dim)
-        mlp_hidden_dim = int(dim * mlp_ratio)
-        mlp_out_dim = int(dim * mlp_out_ratio)
+        mlp_hidden_dim = int(dim * mlp_ratio) # 256 x 4
+        mlp_out_dim = int(dim * mlp_out_ratio) # 256
         self.mlp_s = MLP(in_features=dim, hidden_features=mlp_hidden_dim, out_features=mlp_out_dim, act_layer=act_layer, drop=drop)
         self.mlp_t = MLP(in_features=dim, hidden_features=mlp_hidden_dim, out_features=mlp_out_dim, act_layer=act_layer, drop=drop)
         self.att_fuse = att_fuse
         if self.att_fuse:
             self.ts_attn = nn.Linear(dim*2, dim*2)
-    def forward(self, x, seqlen=1):
+    def forward(self, x, seqlen=1): # x=(BxF, 17, 256), seqlen=243
         if self.st_mode=='stage_st':
-            x = x + self.drop_path(self.attn_s(self.norm1_s(x), seqlen))
-            x = x + self.drop_path(self.mlp_s(self.norm2_s(x)))
-            x = x + self.drop_path(self.attn_t(self.norm1_t(x), seqlen))
-            x = x + self.drop_path(self.mlp_t(self.norm2_t(x)))
+            x = x + self.drop_path(self.attn_s(self.norm1_s(x), seqlen)) # (BxF, 17, 256)
+            x = x + self.drop_path(self.mlp_s(self.norm2_s(x))) # (BxF, 17, 256)
+            x = x + self.drop_path(self.attn_t(self.norm1_t(x), seqlen)) # (BxF, 17, 256)
+            x = x + self.drop_path(self.mlp_t(self.norm2_t(x))) # (BxF, 17, 256)
         elif self.st_mode=='stage_ts':
-            x = x + self.drop_path(self.attn_t(self.norm1_t(x), seqlen))
-            x = x + self.drop_path(self.mlp_t(self.norm2_t(x)))
-            x = x + self.drop_path(self.attn_s(self.norm1_s(x), seqlen))
-            x = x + self.drop_path(self.mlp_s(self.norm2_s(x)))
+            x = x + self.drop_path(self.attn_t(self.norm1_t(x), seqlen)) # (BxF, 17, 256)
+            x = x + self.drop_path(self.mlp_t(self.norm2_t(x))) # (BxF, 17, 256)
+            x = x + self.drop_path(self.attn_s(self.norm1_s(x), seqlen)) # (BxF, 17, 256)
+            x = x + self.drop_path(self.mlp_s(self.norm2_s(x))) # (BxF, 17, 256)
         elif self.st_mode=='stage_para':
             x_t = x + self.drop_path(self.attn_t(self.norm1_t(x), seqlen))
             x_t = x_t + self.drop_path(self.mlp_t(self.norm2_t(x_t)))
@@ -276,15 +277,17 @@ class DSTformer(nn.Module):
         super().__init__()
         self.dim_out = dim_out
         self.dim_feat = dim_feat
-        self.joints_embed = nn.Linear(dim_in, dim_feat) # FC layer before DSTformer
-        self.pos_drop = nn.Dropout(p=drop_rate)
+        self.joints_embed = nn.Linear(dim_in, dim_feat) # FC layer before DSTformer - (BxF, 17, 3) -> (BxF, 17, 256)
+        self.pos_drop = nn.Dropout(p=drop_rate) 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, depth)]  # stochastic depth decay rule
+        # spatial-temporal block
         self.blocks_st = nn.ModuleList([
             Block(
                 dim=dim_feat, num_heads=num_heads, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
                 drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i], norm_layer=norm_layer, 
                 st_mode="stage_st")
             for i in range(depth)])
+        # temporal-spatial block
         self.blocks_ts = nn.ModuleList([
             Block(
                 dim=dim_feat, num_heads=num_heads, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
@@ -299,15 +302,15 @@ class DSTformer(nn.Module):
             ]))
         else:
             self.pre_logits = nn.Identity()
-        self.head = nn.Linear(dim_rep, dim_out) if dim_out > 0 else nn.Identity() # final FC layer     
-        self.temp_embed = nn.Parameter(torch.zeros(1, maxlen, 1, dim_feat)) # learnable temporal positional encoding
-        self.pos_embed = nn.Parameter(torch.zeros(1, num_joints, dim_feat)) # learnable spatial positional encoding
+        self.head = nn.Linear(dim_rep, dim_out) if dim_out > 0 else nn.Identity() # final FC layer 
+        self.temp_embed = nn.Parameter(torch.zeros(1, maxlen, 1, dim_feat)) # learnable temporal positional encoding - (1, 243, 1, 256)
+        self.pos_embed = nn.Parameter(torch.zeros(1, num_joints, dim_feat)) # learnable spatial positional encoding - (1, 17, 256)
         trunc_normal_(self.temp_embed, std=.02)
         trunc_normal_(self.pos_embed, std=.02)
         self.apply(self._init_weights) # 해당 Module의 모든 sub-module에 인수받은 함수를 적용시켜준다.
         self.att_fuse = att_fuse
         if self.att_fuse:
-            self.ts_attn = nn.ModuleList([nn.Linear(dim_feat*2, 2) for i in range(depth)])
+            self.ts_attn = nn.ModuleList([nn.Linear(dim_feat*2, 2) for i in range(depth)]) # 256x2 -> 2
             for i in range(depth):
                 self.ts_attn[i].weight.data.fill_(0)
                 self.ts_attn[i].bias.data.fill_(0.5)
@@ -332,32 +335,32 @@ class DSTformer(nn.Module):
         B, F, J, C = x.shape # Batch, Frame, Joint, Channel
         x = x.reshape(-1, J, C) # Batch*Frame, Joint, Channel
         BF = x.shape[0]
-        x = self.joints_embed(x) # feature embedding
-        x = x + self.pos_embed # add learnable spatial positional encoding
-        _, J, C = x.shape
+        x = self.joints_embed(x) # feature embedding - (BxF, 17, 3) -> (BxF, 17, 256)
+        x = x + self.pos_embed # add learnable spatial positional encoding - (BxF, 17, 256) + (1, 17, 256)
+        _, J, C = x.shape # J=17, C=256
         x = x.reshape(-1, F, J, C) + self.temp_embed[:,:F,:,:] # add learnable temporal positional encoding
-        x = x.reshape(BF, J, C)
+        x = x.reshape(BF, J, C) # (BxF, 17, 256)
         x = self.pos_drop(x)
         #alphas = []
         for idx, (blk_st, blk_ts) in enumerate(zip(self.blocks_st, self.blocks_ts)):
-            x_st = blk_st(x, F) # Block의 forward 함수 -> x, seqlen
-            x_ts = blk_ts(x, F) # Block의 forward 함수 -> x, seqlen
+            x_st = blk_st(x, F) # Block의 forward 함수 -> x: (BxF, 17, 256), F=243, x_st: (BxF, 17, 256)
+            x_ts = blk_ts(x, F) # Block의 forward 함수 -> x: (BxF, 17, 256), F=243, x_ts: (BxF, 17, 256)
             if self.att_fuse:
                 # eq.(5)
                 att = self.ts_attn[idx] # a learnable linear transformation.
-                alpha = torch.cat([x_st, x_ts], dim=-1)
+                alpha = torch.cat([x_st, x_ts], dim=-1) # (BxF, 17, 512)
                 BF, J = alpha.shape[:2]
-                alpha = att(alpha)
+                alpha = att(alpha) # (BxF, 17, 512) -> (BxF, 17, 2)
                 alpha = alpha.softmax(dim=-1) 
-                x = x_st * alpha[:,:,0:1] + x_ts * alpha[:,:,1:2] # eq.(4)
+                x = x_st * alpha[:,:,0:1] + x_ts * alpha[:,:,1:2] # eq.(4) # (BxF, 17, 256)
             else:
-                x = (x_st + x_ts)*0.5
-        x = self.norm(x)
-        x = x.reshape(B, F, J, -1)
-        x = self.pre_logits(x)  # [B, F, J, dim_feat] -> motion representation E 
+                x = (x_st + x_ts)*0.5 # average # (BxF, 17, 256)
+        x = self.norm(x) # layer normalization
+        x = x.reshape(B, F, J, -1) # # (B, F, 17, 256)
+        x = self.pre_logits(x)  # [B, F, J, dim_feat] -> motion representation E or pass
         if return_rep:
             return x
-        x = self.head(x) # 3D motion X_hat # (N, F, 17, dim_rep) -> (N, F, 17, dim_out)
+        x = self.head(x) # 3D motion X_hat # (N, F, 17, dim_rep) -> (N, F, 17, 3)
         return x
 
     def get_representation(self, x):
