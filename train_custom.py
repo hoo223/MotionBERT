@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import argparse
+import ast
 import errno
 import math
 import pickle
@@ -32,6 +33,9 @@ from lib.model.loss import *
 os.environ["NCCL_P2P_DISABLE"]= '1'
 os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1'
 
+def list_of_strings(arg):
+    return arg.split(',')
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/pretrain.yaml", help="Path to the config file.")
@@ -42,6 +46,7 @@ def parse_args():
     parser.add_argument('-ms', '--selection', default='best_epoch.bin', type=str, metavar='FILENAME', help='checkpoint to finetune (file name)')
     parser.add_argument('-sd', '--seed', default=0, type=int, help='random seed')
     parser.add_argument('-g', '--gpu', default='0', type=str, help='GPU id')
+    parser.add_argument('--part_list', type=str, nargs='+', help='eval part list')
     opts = parser.parse_args()
     return opts
 
@@ -282,7 +287,6 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
             pass
 
 def train_with_config(args, opts):
-    print(args)
     try:
         os.makedirs(opts.checkpoint)
     except OSError as e:
@@ -320,14 +324,15 @@ def train_with_config(args, opts):
         posetrack_loader_2d = DataLoader(posetrack, **trainloader_params)
         instav = InstaVDataset2D()
         instav_loader_2d = DataLoader(instav, **trainloader_params)
-    if 'H36M' in args.subset_list:
-        datareader = DataReaderH36M(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
-    elif 'AIHUB' in args.subset_list:
-        datareader = DataReaderAIHUB(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
-    elif 'FIT3D' in args.subset_list:
-        datareader = DataReaderFIT3D(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
-    elif 'KOOKMIN' in args.subset_list:
-        datareader = DataReaderKOOKMIN(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
+    for subset in args.subset_list:
+        if 'H36M' in subset:
+            datareader = DataReaderH36M(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
+        elif 'AIHUB' in subset:
+            datareader = DataReaderAIHUB(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
+        elif 'FIT3D' in subset:
+            datareader = DataReaderFIT3D(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
+        elif 'KOOKMIN' in subset:
+            datareader = DataReaderKOOKMIN(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
     min_loss = 100000
     model_backbone = load_backbone(args)
     model_params = 0
@@ -470,10 +475,15 @@ if __name__ == "__main__":
     opts = parse_args()
     set_random_seed(opts.seed)
     args = get_config(opts.config)
+    args.part_list = opts.part_list
+
     try: test = args.lambda_sym
     except: args.lambda_sym = 0
     try: test = args.part_list
     except: args.part_list = ['whole']
     try: test = args.eval_part
-    except:  args.eval_part = 'whole'
+    except:  
+        if 'whole' in args.part_list: args.eval_part = 'whole'
+        else: args.eval_part = args.part_list[0]
+    print(args)
     train_with_config(args, opts)
