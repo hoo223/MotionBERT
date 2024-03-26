@@ -15,8 +15,11 @@ weight_decay: 0.01
 lr_decay: 0.99
 test_run: False
 
+# Test
+part_list: ['whole', 'torso', 'arms', 'legs']
+
 # Model
-model: DHDST_torso_limb
+model: DHDSTformer_torso_limb
 maxlen: 243
 dim_feat: 512
 mlp_ratio: 2
@@ -44,7 +47,7 @@ length_frame: 0
 pred_length: True
 
 # Loss
-lambda_pos: 1.0
+lambda_3d_pos: 1.0
 
 # Augmentation
 synthetic: False

@@ -15,7 +15,7 @@ lr_decay: 0.99
 test_run: False
 
 # Model
-model: DHDST_torso
+model: DHDSTformer_torso
 maxlen: 243
 dim_feat: 512
 mlp_ratio: 2
@@ -43,7 +43,7 @@ length_frame: 0
 pred_length: True
 
 # Loss
-lambda_torso: 1.0
+lambda_torso_pos: 1.0
 lambda_upper_frame_R: 0.01
 lambda_lower_frame_R: 0.01
 lambda_sym: 0.0

@@ -14,8 +14,11 @@ weight_decay: 0.01
 lr_decay: 0.99
 test_run: False
 
+# Test
+part_list: ['arms', 'legs']
+
 # Model
-model: DHDST_limb4
+model: DHDSTformer_limb4
 maxlen: 243
 dim_feat: 512
 mlp_ratio: 2
@@ -43,9 +46,9 @@ length_frame: 0
 pred_length: True
 
 # Loss
-lambda_pos: 1.0
-lambda_3d_velocity: 0.0
-lambda_scale: 0.0
+lambda_limb_pos: 1.0
+lambda_limb_velocity: 0.0
+lambda_limb_scale: 0.0
 
 # Augmentation
 synthetic: False

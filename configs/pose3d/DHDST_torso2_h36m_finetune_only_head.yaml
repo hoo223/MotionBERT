@@ -1,0 +1,59 @@
+# General  
+train_2d: False
+no_eval: False
+finetune: True
+finetune_only_head: True
+partial_train: null
+
+# Traning 
+epochs: 30
+checkpoint_frequency: 30
+batch_size: 14
+dropout: 0.0
+learning_rate: 0.0002
+weight_decay: 0.01
+lr_decay: 0.99
+test_run: False
+
+# Test
+part_list: ['whole']
+
+# Model
+model: DHDSTformer_torso2
+maxlen: 243
+dim_feat: 512
+mlp_ratio: 2
+depth: 5
+dim_rep: 512
+num_heads: 8
+att_fuse: True
+
+# Data
+data_root: data/motion3d/MB3D_f243s81/
+subset_list: [H36M-SH]
+dt_file: h36m_sh_conf_cam_source_final.pkl
+clip_len: 243
+data_stride: 81
+rootrel: False
+sample_stride: 1
+num_joints: 17
+no_conf: False
+gt_2d: False
+
+# DH
+train_length_type: each 
+test_length_type: each 
+length_frame: 0 
+pred_length: True
+
+# Loss
+lambda_torso_pos: 1.0
+lambda_upper_frame_R: 0.0
+lambda_lower_frame_R: 0.0
+
+# Augmentation
+synthetic: False
+flip: False
+mask_ratio: 0.
+mask_T_ratio: 0.
+noise: False

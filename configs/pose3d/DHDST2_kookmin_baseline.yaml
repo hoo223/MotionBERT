@@ -14,8 +14,8 @@ weight_decay: 0.01
 lr_decay: 0.99
 
 # Model
-model: DHDST2
-maxlen: 243
+model: DHDSTformer_total2
+maxlen: 242
 dim_feat: 512
 mlp_ratio: 2
 depth: 5
@@ -42,14 +42,9 @@ length_frame: 0
 pred_length: True
 
 # Loss
-lambda_pos: 1.0
+lambda_3d_pos: 1.0
 lambda_3d_velocity: 20.0
 lambda_scale: 0.5
-# lambda_lv: 0.0
-# lambda_lg: 0.0
-# lambda_a: 0.0
-# lambda_av: 0.0
-# lambda_sym: 10.0
 
 # Augmentation
 synthetic: False
