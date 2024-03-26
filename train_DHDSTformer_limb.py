@@ -196,7 +196,7 @@ def evaluate(args, model_pos, test_loader, datareader):
                 action = actions[idx]
                 total_result_dict[part]['results'][action].append(err1)
                 total_result_dict[part]['results_procrustes'][action].append(err2)
-            
+
     for part in part_list:
         print('Part:', part)
         final_result = []
@@ -239,12 +239,9 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
                 batch_gt[:,:,:,2] = batch_gt[:,:,:,2] - batch_gt[:,0:1,0:1,2] # Place the depth of first frame root to 0.
             if args.mask or args.noise:
                 batch_input = args.aug.augment2D(batch_input, noise=(args.noise and has_gt), mask=args.mask)
-        
         # Predict 3D poses
-        start = time()
         predicted_3d_pos = model_pos(batch_input, batch_gt_torso)
         pred_limb_pos = predicted_3d_pos[:, :, [2, 3, 5, 6, 12, 13, 15, 16], :]
-        end = time()
         #print('Time for forward pass:', end-start, '\n')
 
         optimizer.zero_grad()
@@ -379,16 +376,11 @@ def train_with_config(args, opts):
         chk_filename = os.path.join(opts.pretrained, opts.selection)
     else:
         chk_filename = ''
-    if args.model == 'DHDST_limb':
-        model_pos = DHDSTformer_limb(chk_filename=chk_filename, args=args)
-    elif args.model == 'DHDST_limb2':
-        model_pos = DHDSTformer_limb2(chk_filename=chk_filename, args=args)
-    elif args.model == 'DHDST_limb3':
-        model_pos = DHDSTformer_limb3(chk_filename=chk_filename, args=args)
-    elif args.model == 'DHDST_limb4':
-        model_pos = DHDSTformer_limb4(chk_filename=chk_filename, args=args)
-    elif args.model == 'DHDST_limb5':
-        model_pos = DHDSTformer_limb5(chk_filename=chk_filename, args=args)
+    if args.model == 'DHDSTformer_limb': model_pos = DHDSTformer_limb(chk_filename=chk_filename, args=args)
+    elif args.model == 'DHDSTformer_limb2': model_pos = DHDSTformer_limb2(chk_filename=chk_filename, args=args)
+    elif args.model == 'DHDSTformer_limb3': model_pos = DHDSTformer_limb3(chk_filename=chk_filename, args=args)
+    elif args.model == 'DHDSTformer_limb4': model_pos = DHDSTformer_limb4(chk_filename=chk_filename, args=args)
+    elif args.model == 'DHDSTformer_limb5': model_pos = DHDSTformer_limb5(chk_filename=chk_filename, args=args)
     model_pos = nn.DataParallel(model_pos)
     model_pos = model_pos.cuda()
     
@@ -469,6 +461,12 @@ def train_with_config(args, opts):
                 # train_writer.add_scalar('loss_2d_proj', losses['2d_proj'].avg, epoch + 1)
                 train_writer.add_scalar('loss_3d_scale', losses['3d_scale'].avg, epoch + 1)
                 train_writer.add_scalar('loss_3d_velocity', losses['3d_velocity'].avg, epoch + 1)
+                # train_writer.add_scalar('loss_lv', losses['lv'].avg, epoch + 1)
+                # train_writer.add_scalar('loss_lg', losses['lg'].avg, epoch + 1)
+                # train_writer.add_scalar('loss_a', losses['angle'].avg, epoch + 1)
+                # train_writer.add_scalar('loss_av', losses['angle_velocity'].avg, epoch + 1)
+                # train_writer.add_scalar('loss_sym', losses['sym'].avg, epoch + 1)
+                train_writer.add_scalar('loss_total', losses['total'].avg, epoch + 1)
                 arm_mpjpe = np.mean([np.mean(total_result_dict['arms']['results'][key]) for key in total_result_dict['arms']['results'].keys()])
                 arm_mpjpe_procrustes = np.mean([np.mean(total_result_dict['arms']['results_procrustes'][key]) for key in total_result_dict['arms']['results_procrustes'].keys()])
                 leg_mpjpe = np.mean([np.mean(total_result_dict['legs']['results'][key]) for key in total_result_dict['legs']['results'].keys()])
@@ -477,13 +475,6 @@ def train_with_config(args, opts):
                 train_writer.add_scalar('arm P2', arm_mpjpe_procrustes, epoch + 1)
                 train_writer.add_scalar('leg P1', leg_mpjpe, epoch + 1)
                 train_writer.add_scalar('leg P2', leg_mpjpe_procrustes, epoch + 1)
-                # train_writer.add_scalar('loss_lv', losses['lv'].avg, epoch + 1)
-                # train_writer.add_scalar('loss_lg', losses['lg'].avg, epoch + 1)
-                # train_writer.add_scalar('loss_a', losses['angle'].avg, epoch + 1)
-                # train_writer.add_scalar('loss_av', losses['angle_velocity'].avg, epoch + 1)
-                # train_writer.add_scalar('loss_sym', losses['sym'].avg, epoch + 1)
-                train_writer.add_scalar('loss_total', losses['total'].avg, epoch + 1)
-                
             # Decay learning rate exponentially
             lr *= lr_decay
             for param_group in optimizer.param_groups:
@@ -492,7 +483,7 @@ def train_with_config(args, opts):
             # Save checkpoints
             chk_path = os.path.join(opts.checkpoint, 'epoch_{}.bin'.format(epoch))
             chk_path_latest = os.path.join(opts.checkpoint, 'latest_epoch.bin')
-            chk_path_best = os.path.join(opts.checkpoint, 'best_epoch.bin'.format(epoch))
+            chk_path_best = os.path.join(opts.checkpoint, 'best_epoch.bin')
             
             save_checkpoint(chk_path_latest, epoch, lr, optimizer, model_pos, min_loss)
             if (epoch + 1) % args.checkpoint_frequency == 0:
@@ -505,7 +496,7 @@ def train_with_config(args, opts):
                     break
             except:
                 pass
-            
+
     if opts.evaluate:
         e1, e2, results_all, total_result_dict = evaluate(args, model_pos, test_loader, datareader)
 

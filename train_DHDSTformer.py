@@ -6,7 +6,7 @@ import math
 import pickle
 import tensorboardX
 from tqdm import tqdm
-
+from time import time
 import copy
 import random
 import prettytable
@@ -27,11 +27,11 @@ from lib.data.datareader_kookmin import DataReaderKOOKMIN
 from lib.model.loss import *
 from lib.model.DHDSTformer import DHDSTformer, DHDSTformer2, DHDSTformer3
 
-sys.path.append('/home/hrai/codes/PoseAdaptor')
+sys.path.append('/home/hrai/codes/hpe_library')
 from lib_import import *
 from my_utils import *
 os.chdir('/home/hrai/codes/MotionBERT')
-from time import time
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -68,7 +68,7 @@ def evaluate(args, model_pos, test_loader, datareader):
     print(args.flip)
     with torch.no_grad():
         for batch_input, batch_gt in tqdm(test_loader):
-            # N, T = batch_gt.shape[:2] # batch_size, 243
+            N, T = batch_gt.shape[:2] # batch_size, 243
             if torch.cuda.is_available():
                 batch_input = batch_input.cuda()
             if args.no_conf:
@@ -132,7 +132,6 @@ def evaluate(args, model_pos, test_loader, datareader):
             total_result_dict[part]['results'][action] = []
             total_result_dict[part]['results_procrustes'][action] = []
 
-
     for idx in range(len(results_all)):
         # check if the clip is in the block list
         source = source_clips[idx][0][:-6]
@@ -188,7 +187,7 @@ def evaluate(args, model_pos, test_loader, datareader):
                 action = actions[idx]
                 total_result_dict[part]['results'][action].append(err1)
                 total_result_dict[part]['results_procrustes'][action].append(err2)
-            
+
     for part in part_list:
         print('Part:', part)
         final_result = []
@@ -229,11 +228,8 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
                 batch_gt[:,:,:,2] = batch_gt[:,:,:,2] - batch_gt[:,0:1,0:1,2] # Place the depth of first frame root to 0.
             if args.mask or args.noise:
                 batch_input = args.aug.augment2D(batch_input, noise=(args.noise and has_gt), mask=args.mask)
-        
         # Predict 3D poses
-        start = time()
         predicted_3d_pos = model_pos(batch_input, length_type=args.train_length_type, ref_frame=args.length_frame)
-        end = time()
         #print('Time for forward pass:', end-start, '\n')
 
         optimizer.zero_grad()
@@ -325,7 +321,6 @@ def train_with_config(args, opts):
         posetrack_loader_2d = DataLoader(posetrack, **trainloader_params)
         instav = InstaVDataset2D()
         instav_loader_2d = DataLoader(instav, **trainloader_params)
-        
     datareader = DataReaderKOOKMIN(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
     min_loss = 100000
     
@@ -386,7 +381,7 @@ def train_with_config(args, opts):
     if args.partial_train:
         model_pos = partial_train_layers(model_pos, args.partial_train)
 
-    if not opts.evaluate:        
+    if not opts.evaluate: 
         lr = args.learning_rate
         optimizer = optim.AdamW(filter(lambda p: p.requires_grad, model_pos.parameters()), lr=lr, weight_decay=args.weight_decay)
         lr_decay = args.lr_decay
@@ -469,7 +464,7 @@ def train_with_config(args, opts):
             # Save checkpoints
             chk_path = os.path.join(opts.checkpoint, 'epoch_{}.bin'.format(epoch))
             chk_path_latest = os.path.join(opts.checkpoint, 'latest_epoch.bin')
-            chk_path_best = os.path.join(opts.checkpoint, 'best_epoch.bin'.format(epoch))
+            chk_path_best = os.path.join(opts.checkpoint, 'best_epoch.bin')
             
             save_checkpoint(chk_path_latest, epoch, lr, optimizer, model_pos, min_loss)
             if (epoch + 1) % args.checkpoint_frequency == 0:
@@ -482,17 +477,15 @@ def train_with_config(args, opts):
                     break
             except:
                 pass
-            
+
     if opts.evaluate:
         e1, e2, results_all = evaluate(args, model_pos, test_loader, datareader)
 
 if __name__ == "__main__":
     opts = parse_args()
-    # os.environ['CUDA_VISIBLE_DEVICES'] = opts.gpu # only one 4090 lacks memory
     set_random_seed(opts.seed)
     args = get_config(opts.config)
-    try:
-        test = args.lambda_sym
+    try: test = args.lambda_sym
     except:
         print('no lambda_sym')
         args.lambda_sym = 0

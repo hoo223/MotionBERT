@@ -23,6 +23,9 @@ from lib.utils.utils_data import flip_data
 from lib.data.dataset_motion_2d import PoseTrackDataset2D, InstaVDataset2D
 from lib.data.dataset_motion_3d import MotionDataset3D
 from lib.data.augmentation import Augmenter2D
+from lib.data.datareader_h36m import DataReaderH36M
+from lib.data.datareader_aihub import DataReaderAIHUB
+from lib.data.datareader_fit3d import DataReaderFIT3D
 from lib.data.datareader_kookmin import DataReaderKOOKMIN
 from lib.model.loss import *
 
@@ -69,12 +72,11 @@ def evaluate(args, model_pos, test_loader, datareader):
     model_pos.eval()            
     with torch.no_grad():
         for batch_input, batch_gt in tqdm(test_loader):
-            # N, T = batch_gt.shape[:2] # batch_size, 243
+            N, T = batch_gt.shape[:2] # batch_size, 243
             if torch.cuda.is_available():
                 batch_input = batch_input.cuda()
             if args.no_conf:
                 batch_input = batch_input[:, :, :, :2]
-            
             # inference
             if args.flip:    
                 batch_input_flip = flip_data(batch_input)
@@ -84,7 +86,6 @@ def evaluate(args, model_pos, test_loader, datareader):
                 predicted_3d_pos = (predicted_3d_pos_1+predicted_3d_pos_2) / 2
             else:
                 predicted_3d_pos = model_pos(batch_input)
-                
             # if args.rootrel:
             #     predicted_3d_pos[:,:,0,:] = 0     # [N,T,17,3]
             # else:
@@ -133,7 +134,6 @@ def evaluate(args, model_pos, test_loader, datareader):
         for action in action_names:
             total_result_dict[part]['results'][action] = []
             total_result_dict[part]['results_procrustes'][action] = []
-
 
     for idx in range(len(results_all)):
         # check if the clip is in the block list
@@ -314,7 +314,6 @@ def train_with_config(args, opts):
         posetrack_loader_2d = DataLoader(posetrack, **trainloader_params)
         instav = InstaVDataset2D()
         instav_loader_2d = DataLoader(instav, **trainloader_params)
-        
     datareader = DataReaderKOOKMIN(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
     min_loss = 100000
     model_backbone = load_backbone(args)
@@ -354,7 +353,7 @@ def train_with_config(args, opts):
     if args.partial_train:
         model_pos = partial_train_layers(model_pos, args.partial_train)
 
-    if not opts.evaluate:        
+    if not opts.evaluate: 
         lr = args.learning_rate
         optimizer = optim.AdamW(filter(lambda p: p.requires_grad, model_pos.parameters()), lr=lr, weight_decay=args.weight_decay)
         lr_decay = args.lr_decay
@@ -437,7 +436,7 @@ def train_with_config(args, opts):
             # Save checkpoints
             chk_path = os.path.join(opts.checkpoint, 'epoch_{}.bin'.format(epoch))
             chk_path_latest = os.path.join(opts.checkpoint, 'latest_epoch.bin')
-            chk_path_best = os.path.join(opts.checkpoint, 'best_epoch.bin'.format(epoch))
+            chk_path_best = os.path.join(opts.checkpoint, 'best_epoch.bin')
             
             save_checkpoint(chk_path_latest, epoch, lr, optimizer, model_pos, min_loss)
             if (epoch + 1) % args.checkpoint_frequency == 0:
@@ -452,7 +451,7 @@ def train_with_config(args, opts):
                     break
             except:
                 pass
-            
+
     if opts.evaluate:
         e1, e2, results_all = evaluate(args, model_pos, test_loader, datareader)
 

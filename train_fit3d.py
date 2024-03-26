@@ -23,10 +23,13 @@ from lib.utils.utils_data import flip_data
 from lib.data.dataset_motion_2d import PoseTrackDataset2D, InstaVDataset2D
 from lib.data.dataset_motion_3d import MotionDataset3D
 from lib.data.augmentation import Augmenter2D
+from lib.data.datareader_h36m import DataReaderH36M
+from lib.data.datareader_aihub import DataReaderAIHUB
 from lib.data.datareader_fit3d import DataReaderFIT3D
 from lib.model.loss import *
 
-
+os.environ["NCCL_P2P_DISABLE"]= '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -61,8 +64,8 @@ def evaluate(args, model_pos, test_loader, datareader):
     results_all = []
     model_pos.eval()            
     with torch.no_grad():
-        for batch_input, batch_gt in tqdm(test_loader):
-            # N, T = batch_gt.shape[:2] # batch_size, 243
+        for batch_input, batch_gt in tqdm(test_loader): # batch_input: normalized joint_2d, batch_gt: normalized joint3d_image
+            N, T = batch_gt.shape[:2] # batch_size, 243
             if torch.cuda.is_available():
                 batch_input = batch_input.cuda()
             if args.no_conf:
@@ -86,7 +89,7 @@ def evaluate(args, model_pos, test_loader, datareader):
             #     predicted_3d_pos[...,:2] = batch_input[...,:2]
             results_all.append(predicted_3d_pos.cpu().numpy())
     results_all = np.concatenate(results_all)
-    results_all = datareader.denormalize(results_all)
+    results_all = datareader.denormalize(results_all) # denormalize the predicted 3D poses
 
     #np.save('/home/hrai/codes/MotionBERT/custom_codes/h36m_result_denormalized_.npy', results_all)
 
@@ -129,7 +132,7 @@ def evaluate(args, model_pos, test_loader, datareader):
         factor = factor_clips[idx][:,None,None]
         gt = gt_clips[idx]
         pred = results_all[idx]
-        pred *= factor # scaling image to world scale
+        pred *= factor # scaling image scale to world scale
         
         # Root-relative Errors
         pred = pred - pred[:,0:1,:] # (243, 17, 3)
@@ -158,7 +161,7 @@ def evaluate(args, model_pos, test_loader, datareader):
     summary_table.add_row(['P1'] + final_result) # second row
     summary_table.add_row(['P2'] + final_result_procrustes) # third row
     print(summary_table)
-    
+
     # Total Error
     e1 = np.mean(np.array(final_result))
     e2 = np.mean(np.array(final_result_procrustes))
@@ -259,8 +262,12 @@ def train_with_config(args, opts):
         posetrack_loader_2d = DataLoader(posetrack, **trainloader_params)
         instav = InstaVDataset2D()
         instav_loader_2d = DataLoader(instav, **trainloader_params)
-        
-    datareader = DataReaderFIT3D(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
+    if 'H36M' in args.subset_list:
+        datareader = DataReaderH36M(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
+    elif 'AIHUB' in args.subset_list:
+        datareader = DataReaderAIHUB(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
+    elif 'FIT3D' in args.subset_list:
+        datareader = DataReaderFIT3D(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
     min_loss = 100000
     model_backbone = load_backbone(args)
     model_params = 0

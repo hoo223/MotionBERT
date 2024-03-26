@@ -209,7 +209,7 @@ def evaluate_all_part(args, model_pos, test_loader, datareader):
     source_clips = np.array([sources[split_id_test[i]] for i in range(len(split_id_test))]) # sources[split_id_test]
     frame_clips  = np.array([frames[split_id_test[i]] for i in range(len(split_id_test))]) # frames[split_id_test]
     gt_clips     = np.array([gts[split_id_test[i]] for i in range(len(split_id_test))]) # gts[split_id_test]
-    
+ 
     total_result_dict = {}
     pelvis, r_hip, l_hip, torso, neck, l_shoulder, r_shoulder = 0, 1, 4, 7, 8, 11, 14
     r_knee, r_ankle, l_knee, l_ankle = 2, 3, 5, 6
@@ -293,7 +293,7 @@ def evaluate_all_part(args, model_pos, test_loader, datareader):
                 action = actions[idx]
                 total_result_dict[part]['results'][action].append(err1)
                 total_result_dict[part]['results_procrustes'][action].append(err2)
-            
+
     for part in part_list:
         print('Part:', part)
         final_result = []
@@ -337,7 +337,6 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
             if args.canonical:
                 batch_input = batch_input - batch_input[:, :, 0:1, :] # root-relative
                 batch_gt = batch_gt - batch_gt[:, :, 0:1, :]
-        
         # Predict 3D poses
         predicted_3d_pos = model_pos(batch_input)    # (N, T, 17, 3)
         if args.only_limb:

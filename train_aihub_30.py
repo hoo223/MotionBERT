@@ -23,6 +23,7 @@ from lib.utils.utils_data import flip_data
 from lib.data.dataset_motion_2d import PoseTrackDataset2D, InstaVDataset2D
 from lib.data.dataset_motion_3d import MotionDataset3D
 from lib.data.augmentation import Augmenter2D
+from lib.data.datareader_h36m import DataReaderH36M
 from lib.data.datareader_aihub import DataReaderAIHUB
 from lib.model.loss import *
 
@@ -99,7 +100,6 @@ def evaluate(args, model_pos, test_loader, datareader):
     source_clips = np.array([sources[split_id_test[i]] for i in range(len(split_id_test))]) # sources[split_id_test]
     frame_clips = np.array([frames[split_id_test[i]] for i in range(len(split_id_test))]) # frames[split_id_test]
     gt_clips = np.array([gts[split_id_test[i]] for i in range(len(split_id_test))]) # gts[split_id_test]
-    print(len(results_all), len(action_clips))
     assert len(results_all)==len(action_clips)
     
     e1_all = np.zeros(num_test_frames)
@@ -111,9 +111,11 @@ def evaluate(args, model_pos, test_loader, datareader):
     for action in action_names:
         results[action] = []
         results_procrustes[action] = []
-    block_list = ['s_09_act_05_subact_02', 
-                  's_09_act_10_subact_02', 
-                  's_09_act_13_subact_01']
+    if 'H36M' in args.subset_list:
+        block_list = ['s_09_act_05_subact_02', 
+                    's_09_act_10_subact_02', 
+                    's_09_act_13_subact_01']
+    else: block_list = []
     for idx in range(len(results_all)):
         source = source_clips[idx][0]
         if source in block_list:
@@ -187,10 +189,7 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
             loss_lg = loss_limb_gt(predicted_3d_pos, batch_gt) # limb 길이 error
             loss_a = loss_angle(predicted_3d_pos, batch_gt)
             loss_av = loss_angle_velocity(predicted_3d_pos, batch_gt)
-
-            # bilateral symmetry loss
-            loss_sym = loss_symmetry(predicted_3d_pos)
-
+            loss_sym = loss_symmetry(predicted_3d_pos) # bilateral symmetry loss
             loss_total = loss_3d_pos + \
                          args.lambda_scale       * loss_3d_scale + \
                          args.lambda_3d_velocity * loss_3d_velocity + \
@@ -213,7 +212,7 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
             loss_total = loss_2d_proj
             losses['2d_proj'].update(loss_2d_proj.item(), batch_size)
             losses['total'].update(loss_total.item(), batch_size)
-        loss_total.backward()
+        loss_total.backward() # backprop
         optimizer.step()
 
 def train_with_config(args, opts):
@@ -255,8 +254,11 @@ def train_with_config(args, opts):
         posetrack_loader_2d = DataLoader(posetrack, **trainloader_params)
         instav = InstaVDataset2D()
         instav_loader_2d = DataLoader(instav, **trainloader_params)
-        
-    datareader = DataReaderAIHUB(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
+    if 'H36M' in args.subset_list:
+        datareader = DataReaderH36M(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
+    elif 'AIHUB' in args.subset_list:
+        datareader = DataReaderAIHUB(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
+
     min_loss = 100000
     model_backbone = load_backbone(args)
     model_params = 0
@@ -377,7 +379,7 @@ def train_with_config(args, opts):
             # Save checkpoints
             chk_path = os.path.join(opts.checkpoint, 'epoch_{}.bin'.format(epoch))
             chk_path_latest = os.path.join(opts.checkpoint, 'latest_epoch.bin')
-            chk_path_best = os.path.join(opts.checkpoint, 'best_epoch.bin'.format(epoch))
+            chk_path_best = os.path.join(opts.checkpoint, 'best_epoch.bin')
             
             save_checkpoint(chk_path_latest, epoch, lr, optimizer, model_pos, min_loss)
             if (epoch + 1) % args.checkpoint_frequency == 0:

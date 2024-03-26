@@ -244,7 +244,6 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
         if has_3d:
             loss_3d_pos = loss_mpjpe(predicted_3d_pos, batch_gt)
             loss_total = loss_3d_pos
-                         
             losses['3d_pos'].update(loss_3d_pos.item(), batch_size)
             losses['total'].update(loss_total.item(), batch_size)
         else:
@@ -352,7 +351,7 @@ def train_with_config(args, opts):
         model_pos = DHDSTformer3(chk_filename=chk_filename, args=args)
     elif args.model == 'DHDST_torso':
         model_pos = DHDSTformer_torso(chk_filename=chk_filename, args=args)
-    elif args.model == 'DHDST_torso_limb':
+    elif args.model == 'DHDSTformer_torso_limb':
         model_pos = DHDSTformer_torso_limb(chk_filename=chk_filename, args=args)
     model_pos = nn.DataParallel(model_pos)
     model_pos = model_pos.cuda()

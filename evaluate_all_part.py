@@ -76,7 +76,6 @@ def evaluate(args, model_pos, test_loader, datareader):
                 predicted_3d_pos[:,:,0,:] = 0     # [N,T,17,3]
             else:
                 batch_gt[:,0,0,2] = 0
-
             if args.gt_2d:
                 predicted_3d_pos[...,:2] = batch_input[...,:2]
             results_all.append(predicted_3d_pos.cpu().numpy())
@@ -161,12 +160,11 @@ def evaluate_all_part(args, model_pos, test_loader, datareader):
     model_pos.eval()            
     with torch.no_grad():
         for batch_input, batch_gt in tqdm(test_loader):
-            # N, T = batch_gt.shape[:2] # batch_size, 243
+            N, T = batch_gt.shape[:2] # batch_size, 243
             if torch.cuda.is_available():
                 batch_input = batch_input.cuda()
             if args.no_conf:
                 batch_input = batch_input[:, :, :, :2]
-            
             # inference
             if args.flip:    
                 batch_input_flip = flip_data(batch_input)
@@ -177,17 +175,15 @@ def evaluate_all_part(args, model_pos, test_loader, datareader):
             else:
                 predicted_3d_pos = model_pos(batch_input)
                 
-            # if args.rootrel:
-            #     predicted_3d_pos[:,:,0,:] = 0     # [N,T,17,3]
-            # else:
-            #     batch_gt[:,0,0,2] = 0
-            # if args.gt_2d:
-            #     predicted_3d_pos[...,:2] = batch_input[...,:2]
+            if args.rootrel:
+                predicted_3d_pos[:,:,0,:] = 0     # [N,T,17,3]
+            else:
+                batch_gt[:,0,0,2] = 0
+            if args.gt_2d:
+                predicted_3d_pos[...,:2] = batch_input[...,:2]
             results_all.append(predicted_3d_pos.cpu().numpy())
     results_all = np.concatenate(results_all)
     results_all = datareader.denormalize(results_all)
-
-    #np.save('/home/hrai/codes/MotionBERT/custom_codes/h36m_result_denormalized_.npy', results_all)
 
     _, split_id_test = datareader.get_split_id() # [range(0, 243) ... range(102759, 103002)] 
     actions = np.array(datareader.dt_dataset['test']['action']) # 103130 ['squat' ...  'kneeup']
@@ -212,7 +208,7 @@ def evaluate_all_part(args, model_pos, test_loader, datareader):
     block_list = ['s_09_act_05_subact_02', 
                   's_09_act_10_subact_02', 
                   's_09_act_13_subact_01']
-    part_list = ['dhdst_torso', 'arms', 'legs'] # ['whole', 'torso', 'arms', 'legs', 'pelvis', 'r_hip', 'l_hip', 'torso', 'neck', 'l_shoulder', 'r_shoulder', 'l_elbow', 'l_wrist', 'r_elbow', 'r_wrist', 'r_knee', 'r_ankle', 'l_knee', 'l_ankle', 'nose', 'head']
+    part_list = ['torso_full', 'arms', 'legs'] # ['whole', 'torso', 'arms', 'legs', 'pelvis', 'r_hip', 'l_hip', 'torso', 'neck', 'l_shoulder', 'r_shoulder', 'l_elbow', 'l_wrist', 'r_elbow', 'r_wrist', 'r_knee', 'r_ankle', 'l_knee', 'l_ankle', 'nose', 'head']
     for part in part_list:
         total_result_dict[part] = {
             'e1_all': np.zeros(num_test_frames),
@@ -249,8 +245,8 @@ def evaluate_all_part(args, model_pos, test_loader, datareader):
         
         for part in part_list:
             if part == 'whole': joint_list = [j for j in range(17)]
-            elif part == 'torso': joint_list = [pelvis, r_hip, l_hip, torso, neck, l_shoulder, r_shoulder]
-            elif part == 'dhdst_torso': joint_list = [pelvis, r_hip, l_hip, torso, neck, nose, head, l_shoulder, r_shoulder]
+            elif part == 'torso_small': joint_list = [r_hip, l_hip, neck, l_shoulder, r_shoulder]
+            elif part == 'torso_full': joint_list = [pelvis, r_hip, l_hip, torso, neck, nose, head, l_shoulder, r_shoulder]
             elif part == 'arms': joint_list = [l_elbow, l_wrist, r_elbow, r_wrist]
             elif part == 'legs': joint_list = [r_knee, r_ankle, l_knee, l_ankle]
             elif part == 'pelvis': joint_list = [pelvis]
@@ -307,7 +303,7 @@ def evaluate_all_part(args, model_pos, test_loader, datareader):
         print('Protocol #2 Error (P-MPJPE):', e2, 'mm')
         print('----------------------------------------')
     
-    return e1, e2, results_all
+    return e1, e2, results_all, total_result_dict
         
 def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt):
     model_pos.train()

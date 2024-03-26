@@ -23,15 +23,11 @@ from lib.utils.utils_data import flip_data
 from lib.data.dataset_motion_2d import PoseTrackDataset2D, InstaVDataset2D
 from lib.data.dataset_motion_3d import MotionDataset3D
 from lib.data.augmentation import Augmenter2D
+from lib.data.datareader_h36m import DataReaderH36M
 from lib.data.datareader_aihub import DataReaderAIHUB
 from lib.model.loss import *
 
-import wandb
-
-wandb.init(
-    # set the wandb project where this run will be logged
-    project="HAAI_HPE"
-)
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -65,7 +61,7 @@ def evaluate(args, model_pos, test_loader, datareader):
     results_all = []
     model_pos.eval()            
     with torch.no_grad():
-        for batch_input, batch_gt in tqdm(test_loader):
+        for batch_input, batch_gt in tqdm(test_loader): # batch_input: normalized joint_2d, batch_gt: normalized joint3d_image
             N, T = batch_gt.shape[:2]
             if torch.cuda.is_available():
                 batch_input = batch_input.cuda()
@@ -88,7 +84,7 @@ def evaluate(args, model_pos, test_loader, datareader):
                 predicted_3d_pos[...,:2] = batch_input[...,:2]
             results_all.append(predicted_3d_pos.cpu().numpy())
     results_all = np.concatenate(results_all)
-    results_all = datareader.denormalize(results_all)
+    results_all = datareader.denormalize(results_all) # denormalize the predicted 3D poses
 
     #np.save('/home/hrai/codes/MotionBERT/custom_codes/h36m_result_denormalized_.npy', results_all)
 
@@ -184,7 +180,7 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
         predicted_3d_pos = model_pos(batch_input)    # (N, T, 17, 3)
         
         optimizer.zero_grad()
-        if has_3d: # 3D data
+        if has_3d:
             loss_3d_pos = loss_mpjpe(predicted_3d_pos, batch_gt)
             loss_3d_scale = n_mpjpe(predicted_3d_pos, batch_gt)
             loss_3d_velocity = loss_velocity(predicted_3d_pos, batch_gt)
@@ -207,13 +203,11 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
             losses['angle'].update(loss_a.item(), batch_size)
             losses['angle_velocity'].update(loss_av.item(), batch_size)
             losses['total'].update(loss_total.item(), batch_size)
-            wandb.log({"loss_3d_pos": loss_3d_pos.item(), "loss_3d_scale": loss_3d_scale.item(), "loss_3d_velocity": loss_3d_velocity.item(), "loss_lv": loss_lv.item(), "loss_lg": loss_lg.item(), "loss_a": loss_a.item(), "loss_av": loss_av.item(), "loss_total": loss_total.item()})   
-        else: # 2D data
+        else:
             loss_2d_proj = loss_2d_weighted(predicted_3d_pos, batch_gt, conf)
             loss_total = loss_2d_proj
             losses['2d_proj'].update(loss_2d_proj.item(), batch_size)
             losses['total'].update(loss_total.item(), batch_size)
-            wandb.log({"loss_2d_proj": loss_2d_proj.item(), "loss_total": loss_total.item()})
         loss_total.backward() # backprop
         optimizer.step()
 
@@ -256,8 +250,11 @@ def train_with_config(args, opts):
         posetrack_loader_2d = DataLoader(posetrack, **trainloader_params)
         instav = InstaVDataset2D()
         instav_loader_2d = DataLoader(instav, **trainloader_params)
-        
-    datareader = DataReaderAIHUB(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
+    if 'H36M' in args.subset_list:
+        datareader = DataReaderH36M(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
+    elif 'AIHUB' in args.subset_list:
+        datareader = DataReaderAIHUB(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
+
     min_loss = 100000
     model_backbone = load_backbone(args)
     model_params = 0
@@ -269,7 +266,7 @@ def train_with_config(args, opts):
         model_backbone = nn.DataParallel(model_backbone)
         model_backbone = model_backbone.cuda()
 
-    if args.finetune: # v
+    if args.finetune:
         if opts.resume or opts.evaluate:
             chk_filename = opts.evaluate if opts.evaluate else opts.resume
             print('Loading checkpoint', chk_filename)
@@ -303,7 +300,7 @@ def train_with_config(args, opts):
         st = 0
         if args.train_2d:
             print('INFO: Training on {}(3D)+{}(2D) batches'.format(len(train_loader_3d), len(instav_loader_2d) + len(posetrack_loader_2d)))
-        else: # v
+        else:
             print('INFO: Training on {}(3D) batches'.format(len(train_loader_3d)))
         if opts.resume:
             st = checkpoint['epoch']
@@ -391,8 +388,6 @@ def train_with_config(args, opts):
 
 if __name__ == "__main__":
     opts = parse_args()
-    opts.checkpoint += "_{}".format(wandb.run.name)
     set_random_seed(opts.seed)
     args = get_config(opts.config)
-    wandb.config.update(args)
     train_with_config(args, opts)

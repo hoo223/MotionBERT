@@ -160,7 +160,7 @@ def evaluate(args, model_pos, test_loader, datareader):
         err2_per_joint = p_mpjpe_for_each_joint(pred, gt) # (243, 17)
         
         for part in part_list:
-            if part == 'whole': joint_list = []
+            if part == 'whole': joint_list = [j for j in range(17)]
             elif part == 'torso': joint_list = [pelvis, r_hip, l_hip, torso, neck, l_shoulder, r_shoulder]
             elif part == 'arms': joint_list = [l_elbow, l_wrist, r_elbow, r_wrist]
             elif part == 'legs': joint_list = [r_knee, r_ankle, l_knee, l_ankle]
@@ -180,12 +180,8 @@ def evaluate(args, model_pos, test_loader, datareader):
             elif part == 'l_knee' : joint_list = [l_knee]
             elif part == 'l_ankle': joint_list = [l_ankle]
             
-            if len(joint_list) != 0:
-                err1 = np.mean(err1_per_joint[:, joint_list], axis=1) # mpjpe(pred, gt) # (243, )
-                err2 = np.mean(err2_per_joint[:, joint_list], axis=1) # p_mpjpe(pred, gt)
-            else:
-                err1 = np.mean(err1_per_joint, axis=1)
-                err2 = np.mean(err2_per_joint, axis=1)
+            err1 = np.mean(err1_per_joint[:, joint_list], axis=1) # mpjpe(pred, gt) # (243, )
+            err2 = np.mean(err2_per_joint[:, joint_list], axis=1) # p_mpjpe(pred, gt)
             total_result_dict[part]['e1_all'][frame_list] += err1 # (243, ) # 각 프레임 별 에러를 더해줌
             total_result_dict[part]['e2_all'][frame_list] += err2 # (243, ) # 각 프레임 별 에러를 더해줌
             total_result_dict[part]['oc'][frame_list] += 1
@@ -199,7 +195,7 @@ def evaluate(args, model_pos, test_loader, datareader):
                 action = actions[idx]
                 total_result_dict[part]['results'][action].append(err1)
                 total_result_dict[part]['results_procrustes'][action].append(err2)
-            
+
     for part in part_list:
         print('Part:', part)
         final_result = []
@@ -250,29 +246,26 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
         batch_lower_quat = matrix_to_quaternion(batch_lower_R)
         batch_upper_quat = matrix_to_quaternion(batch_upper_R)
         
-        # generate batch virtual camera
-        batch_roll = torch.zeros(batch_pose.shape[0], batch_pose.shape[1], 1)
-        batch_azim = torch.rand(batch_pose.shape[0], batch_pose.shape[1], 1) * radians(360)
-        batch_elev = torch.rand(batch_pose.shape[0], batch_pose.shape[1], 1) * radians(30)
-        batch_dist_to_person = torch.ones(batch_pose.shape[0], batch_pose.shape[1], 1) * 3
-        batch_cam_origin = batch_azim_elev_to_vec(batch_azim=batch_azim, 
-                                                    batch_elev=batch_elev, 
-                                                    batch_magnitude=batch_dist_to_person, 
-                                                    batch_origin=batch_pelvis)
-        batch_camera = BatchCamera(batch_origin=batch_cam_origin, 
-                                    batch_roll=batch_roll, 
-                                    batch_pitch=-batch_elev, 
-                                    batch_yaw=batch_azim)
+        # # generate batch virtual camera
+        # batch_roll = torch.zeros(batch_pose.shape[0], batch_pose.shape[1], 1)
+        # batch_azim = torch.rand(batch_pose.shape[0], batch_pose.shape[1], 1) * radians(360)
+        # batch_elev = torch.rand(batch_pose.shape[0], batch_pose.shape[1], 1) * radians(30)
+        # batch_dist_to_person = torch.ones(batch_pose.shape[0], batch_pose.shape[1], 1) * 3
+        # batch_cam_origin = batch_azim_elev_to_vec(batch_azim=batch_azim, 
+        #                                             batch_elev=batch_elev, 
+        #                                             batch_magnitude=batch_dist_to_person, 
+        #                                             batch_origin=batch_pelvis)
+        # batch_camera = BatchCamera(batch_origin=batch_cam_origin, 
+        #                             batch_roll=batch_roll, 
+        #                             batch_pitch=-batch_elev, 
+        #                             batch_yaw=batch_azim)
         
-        batch_pose_projected = batch_projection(batch_pose, batch_camera.batch_cam_proj)
+        # batch_pose_projected = batch_projection(batch_pose, batch_camera.batch_cam_proj)
 
         # Predict 3D poses
-        start = time()
         pred_torso, pred_lower_frame_R, pred_upper_frame_R = model_pos(batch_input)
         pred_lower_quat = matrix_to_quaternion(pred_lower_frame_R)
         pred_upper_quat = matrix_to_quaternion(pred_upper_frame_R)
-        end = time()
-        #print('Time for forward pass:', end-start, '\n')
 
         optimizer.zero_grad()
         if has_3d:
