@@ -22,3 +22,4 @@ python train_action_kookmin.py \
 --config configs/action/MB_ft_Kookmin2_train_s19-20_augment_243_50_test_augment_243_50.yaml \
 --pretrained checkpoint/pretrain/MB_release \
 --checkpoint checkpoint/action/FT_MB_release_MB_Kookmin2_Action_Train_S19-20_Augment_243_50_Test_Augment_243_50
+

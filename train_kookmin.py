@@ -276,7 +276,7 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
             pass
 
 def train_with_config(args, opts):
-    print(args)
+    #print(args)
     try:
         os.makedirs(opts.checkpoint)
     except OSError as e:
@@ -304,8 +304,8 @@ def train_with_config(args, opts):
           'persistent_workers': True
     }
 
-    train_dataset = MotionDataset3D(args, args.subset_list, 'train')
-    test_dataset = MotionDataset3D(args, args.subset_list, 'test')
+    train_dataset = MotionDataset3D(args, args.subset_list, 'train') # train 데이터 불러오기
+    test_dataset = MotionDataset3D(args, args.subset_list, 'test') # test 데이터 불러오기
     train_loader_3d = DataLoader(train_dataset, **trainloader_params)
     test_loader = DataLoader(test_dataset, **testloader_params)
     
@@ -463,6 +463,6 @@ if __name__ == "__main__":
     try:
         test = args.lambda_sym
     except:
-        print('no lambda_sym')
+        #print('no lambda_sym')
         args.lambda_sym = 0
     train_with_config(args, opts)

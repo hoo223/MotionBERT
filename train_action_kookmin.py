@@ -193,7 +193,7 @@ def train_with_config(args, opts):
                     batch_time.update(time.time() - end)
                     end = time.time()
                 except Exception as e:
-                    print('RuntimeError', e)
+                    #print('RuntimeError', e)
                     continue
             if (idx + 1) % opts.print_freq == 0:
                 print('Train: [{0}][{1}/{2}]\t'

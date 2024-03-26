@@ -148,7 +148,7 @@ class ActionDataset(Dataset):
             resample_id = resample(ori_len=sample['total_frames'], target_len=n_frames, randomness=self.is_train)
             motion_cam = make_cam(x=sample['keypoint'], img_shape=sample['img_shape'])
             motion_cam = human_tracking(motion_cam)
-            motion_cam = coco2h36m(motion_cam)
+            #motion_cam = coco2h36m(motion_cam)
             motion_conf = sample['keypoint_score'][..., None]
             motion = np.concatenate((motion_cam[:,resample_id], motion_conf[:,resample_id]), axis=-1)
             if motion.shape[0]==1:                                  # Single person, make a fake zero person
