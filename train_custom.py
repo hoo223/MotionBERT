@@ -552,6 +552,9 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
             pred_limb_pos = model_pos(batch_input) 
         else:
             predicted_3d_pos = model_pos(batch_input)    # (N, T, 17, 3)
+            if args.lambda_dh_angle > 0:
+                pred_angle = get_limb_angle(predicted_3d_pos)
+                gt_angle = get_limb_angle(batch_gt)
         optimizer.zero_grad()
         if has_3d:
             loss_total = 0
@@ -621,11 +624,11 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
                 loss_length = torch.mean(torch.norm(pred_length - gt_length, dim=len(pred_length.shape)-1))
                 loss_total += args.lambda_length * loss_length
                 losses['length'].update(loss_length.item(), batch_size)
-            if args.lambda_angle > 0:
+            if args.lambda_dh_angle > 0:
                 assert pred_angle.shape == gt_angle.shape, 'Angle shape mismatch'
-                loss_angle = torch.mean(torch.norm(pred_angle - gt_angle, dim=len(pred_angle.shape)-1))
-                loss_total += args.lambda_angle * loss_angle
-                losses['angle'].update(loss_angle.item(), batch_size)
+                loss_dh_angle = nn.L1Loss()(pred_angle, gt_angle) # torch.mean(torch.norm(pred_angle - gt_angle, dim=len(pred_angle.shape)-1))
+                loss_total += args.lambda_dh_angle * loss_dh_angle
+                losses['dh_angle'].update(loss_dh_angle.item(), batch_size)
             if args.lambda_onevec_pos:
                 loss_onevec_pos = loss_mpjpe(pred_3d_pos, gt_3d_pos)
                 loss_total += args.lambda_onevec_pos * loss_onevec_pos
@@ -808,7 +811,7 @@ def train_with_config(args, opts):
             if args.lambda_sym > 0:           losses['sym'] = AverageMeter()
             if args.lambda_root_point > 0:    losses['root_point'] = AverageMeter()
             if args.lambda_length > 0:        losses['length'] = AverageMeter()
-            if args.lambda_angle > 0:         losses['angle'] = AverageMeter()
+            if args.lambda_dh_angle > 0:      losses['dh_angle'] = AverageMeter()
             if args.lambda_onevec_pos:        losses['onevec_pos'] = AverageMeter()
             losses['total'] = AverageMeter()
             losses['2d_proj'] = AverageMeter()
@@ -863,7 +866,7 @@ def train_with_config(args, opts):
                 if args.lambda_sym > 0:           train_writer.add_scalar('loss_sym', losses['sym'].avg, epoch + 1)
                 if args.lambda_root_point > 0:    train_writer.add_scalar('loss_root_point', losses['root_point'].avg, epoch + 1)
                 if args.lambda_length > 0:        train_writer.add_scalar('loss_length', losses['length'].avg, epoch + 1)
-                if args.lambda_angle > 0:         train_writer.add_scalar('loss_angle', losses['angle'].avg, epoch + 1)
+                if args.lambda_dh_angle > 0:      train_writer.add_scalar('loss_dh_angle', losses['dh_angle'].avg, epoch + 1)
                 if args.lambda_onevec_pos:        train_writer.add_scalar('loss_onevec_pos', losses['onevec_pos'].avg, epoch + 1)
                 if 'arms' in args.part_list:
                     arm_mpjpe = np.mean([np.mean(total_result_dict['arms']['results'][key]) for key in total_result_dict['arms']['results'].keys()])
@@ -949,8 +952,8 @@ def check_args(args):
     except: args.lambda_root_point = 0.0
     try: test = args.lambda_length
     except: args.lambda_length = 0.0
-    try: test = args.lambda_angle
-    except: args.lambda_angle = 0.0
+    try: test = args.lambda_dh_angle
+    except: args.lambda_dh_angle = 0.0
     try: test = args.lambda_onevec_pos
     except: args.lambda_onevec_pos = 0.0
 
