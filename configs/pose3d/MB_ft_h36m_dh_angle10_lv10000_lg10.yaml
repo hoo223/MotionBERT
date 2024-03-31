@@ -17,7 +17,7 @@ lr_decay: 0.99
 part_list: ['whole'] 
 
 # Model
-model: 'MB_ft_h36m_no_factor'
+model: 'MB_ft_h36m_dh_angle10_lv10000_lg10'
 maxlen: 243
 dim_feat: 512
 mlp_ratio: 2
@@ -28,11 +28,11 @@ att_fuse: True
 
 # Data
 data_root: data/motion3d/MB3D_f243s81/
-subset_list: [H36M-SH_WITH_NO_FACTOR]
-dt_file: h36m_sh_with_no_factor.pkl
+subset_list: [H36M-SH]
+dt_file: h36m_sh_conf_cam_source_final.pkl
 clip_len: 243
 data_stride: 81
-rootrel: True
+rootrel: False
 sample_stride: 1
 num_joints: 17
 no_conf: False
@@ -42,10 +42,11 @@ gt_2d: False
 lambda_3d_pos: 1.0
 lambda_3d_velocity: 20.0
 lambda_scale: 0.5
-lambda_lv: 0.0
-lambda_lg: 0.0
+lambda_lv: 10000.0
+lambda_lg: 10.0
 lambda_a: 0.0
 lambda_av: 0.0
+lambda_dh_angle: 10.0
 
 # Augmentation
 synthetic: False
