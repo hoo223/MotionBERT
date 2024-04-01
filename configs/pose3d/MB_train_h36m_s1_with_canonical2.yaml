@@ -27,7 +27,7 @@ att_fuse: True
 
 # Data
 data_root: data/motion3d/MB3D_f243s81/
-subset_list: [H36M-GT-TRAIN-S1]
+subset_list: [H36M-GT_TRAIN_S1]
 dt_file: h36m_train_s1_test_s5678.pkl
 clip_len: 243
 data_stride: 81

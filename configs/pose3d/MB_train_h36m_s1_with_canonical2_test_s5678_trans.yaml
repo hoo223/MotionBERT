@@ -27,8 +27,8 @@ att_fuse: True
 
 # Data
 data_root: data/motion3d/MB3D_f243s81/
-subset_list: [H36M_TEST_S5678_TRANS]
-dt_file: h36m_test_s5678_trans.pkl
+subset_list: [H36M-GT_TEST_S5678_TRANS]
+dt_file: H36M-GT_TEST_S5678_TRANS.pkl
 clip_len: 243
 data_stride: 81
 rootrel: True

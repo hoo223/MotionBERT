@@ -28,7 +28,7 @@ att_fuse: True
 
 # Data
 data_root: data/motion3d/MB3D_f243s81/
-subset_list: [H36M-SH_WITH_NO_FACTOR]
+subset_list: [H36M-GT_WITH_NO_FACTOR]
 dt_file: h36m_sh_with_no_factor.pkl
 clip_len: 243
 data_stride: 81
