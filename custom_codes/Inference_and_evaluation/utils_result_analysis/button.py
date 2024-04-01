@@ -38,9 +38,19 @@ def get_analysis_button():
         icon='check'
     )
 
-def get_reset_button():
+def get_procrustes_button():
+    return widgets.ToggleButton(
+        value=False,
+        description='Procrutes',
+        disabled=False,
+        button_style='', # 'success', 'info', 'warning', 'danger' or ''
+        tooltip='Description',
+        icon='check'
+    )
+
+def get_reset_button(description):
     return widgets.Button(
-        description='Reset',
+        description=description,
         disabled=False,
         button_style='', # 'success', 'info', 'warning', 'danger' or ''
         tooltip='Click me',

@@ -7,7 +7,7 @@ def get_subject_select(subject_list):
         value=subject_list[0],
         rows=15,
         description='Subject:',
-        disabled=False,
+        disabled=False
     )
 
 def get_action_select(action_list):
@@ -35,4 +35,13 @@ def get_batch_select(batch_list):
         rows=15,
         description='Batch:',
         disabled=False,
+    )
+
+def get_part_select(part_list):
+    return widgets.SelectMultiple(
+        options=part_list,
+        value=[],
+        rows=len(part_list),
+        description='Part',
+        disabled=False
     )
