@@ -28,10 +28,20 @@ def get_root_rel_button():
         icon='check'
     )
     
-def get_analysis_button():
+def get_analysis_error_button():
     return widgets.ToggleButton(
         value=False,
-        description='Analysis',
+        description='Analysis error',
+        disabled=False,
+        button_style='', # 'success', 'info', 'warning', 'danger' or ''
+        tooltip='Description',
+        icon='check'
+    )
+
+def get_analysis_dh_button():
+    return widgets.ToggleButton(
+        value=False,
+        description='Analysis dh',
         disabled=False,
         button_style='', # 'success', 'info', 'warning', 'danger' or ''
         tooltip='Description',

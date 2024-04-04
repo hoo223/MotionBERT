@@ -77,4 +77,10 @@ def check_args(args, opts):
     try: test = args.mpjpe_after_part
     except: args.mpjpe_after_part = False
 
+    try: test = args.gt_mode
+    except: args.gt_mode = 'joint3d_image'
+
+    try: test = args.denormalize_output
+    except: args.denormalize_output = True
+
     return args

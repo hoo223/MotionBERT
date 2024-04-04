@@ -40,7 +40,7 @@ def get_batch_select(batch_list):
 def get_part_select(part_list):
     return widgets.SelectMultiple(
         options=part_list,
-        value=[],
+        value=[part_list[0]],
         rows=len(part_list),
         description='Part',
         disabled=False

@@ -66,7 +66,7 @@ def batch_inference_eval(args, model_pos, batch_input, batch_gt_torso, batch_gt_
             
     return predicted_3d_pos
 
-def inference_eval(args, model_pos, test_loader, datareader, denormalize=True):
+def inference_eval(args, model_pos, test_loader, datareader):
     results_all = []
     gts_all = []
     inputs_all = []
@@ -91,7 +91,7 @@ def inference_eval(args, model_pos, test_loader, datareader, denormalize=True):
     results_all = np.concatenate(results_all)
     gts_all = np.concatenate(gts_all)
     inputs_all = np.concatenate(inputs_all)
-    if denormalize:
+    if args.denormalize_output:
         results_all = datareader.denormalize(results_all) # denormalize the predicted 3D poses
     
     return results_all
@@ -99,8 +99,14 @@ def inference_eval(args, model_pos, test_loader, datareader, denormalize=True):
 def get_clip_info(datareader, results_all):
     _, split_id_test = datareader.get_split_id() # [range(0, 243) ... range(102759, 103002)] 
     actions = np.array(datareader.dt_dataset['test']['action']) # 103130 ['squat' ...  'kneeup']
-    factors = np.array(datareader.dt_dataset['test']['2.5d_factor']) # 103130 [3.49990559 ... 2.09230852]
-    gts = np.array(datareader.dt_dataset['test']['joints_2.5d_image']) # 103130, 17, 3
+    try:
+        factors = np.array(datareader.dt_dataset['test']['2.5d_factor']) # 103130 [3.49990559 ... 2.09230852]
+    except: # if no factor
+        factors = np.ones_like(actions)
+    try:
+        gts = np.array(datareader.dt_dataset['test']['joints_2.5d_image']) # 103130, 17, 3
+    except: # if no joints_2.5d_image
+        gts = np.array(datareader.dt_dataset['test']['world_3d']) # 103130, 17, 3
     sources = np.array(datareader.dt_dataset['test']['source']) # 103130 ['S02_6_squat_001' ... 'S08_4_kneeup_001']
 
     num_test_frames = len(actions)
@@ -112,10 +118,10 @@ def get_clip_info(datareader, results_all):
     gt_clips     = np.array([gts[split_id_test[i]] for i in range(len(split_id_test))]) # gts[split_id_test]
     assert len(results_all)==len(action_clips)
 
-    return num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips
+    return num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions
 
 def calculate_eval_metric(args, results_all, datareader):
-    num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips = get_clip_info(datareader, results_all)
+    num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions = get_clip_info(datareader, results_all)
 
     total_result_dict = {}
     pelvis, r_hip, l_hip, torso, neck, l_shoulder, r_shoulder = 0, 1, 4, 7, 8, 11, 14
