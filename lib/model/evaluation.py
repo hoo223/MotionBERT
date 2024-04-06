@@ -103,10 +103,7 @@ def get_clip_info(datareader, results_all):
         factors = np.array(datareader.dt_dataset['test']['2.5d_factor']) # 103130 [3.49990559 ... 2.09230852]
     except: # if no factor
         factors = np.ones_like(actions)
-    try:
-        gts = np.array(datareader.dt_dataset['test']['joints_2.5d_image']) # 103130, 17, 3
-    except: # if no joints_2.5d_image
-        gts = np.array(datareader.dt_dataset['test']['world_3d']) # 103130, 17, 3
+    gts = np.array(datareader.dt_dataset['test'][datareader.mode]) # 103130, 17, 3
     sources = np.array(datareader.dt_dataset['test']['source']) # 103130 ['S02_6_squat_001' ... 'S08_4_kneeup_001']
 
     num_test_frames = len(actions)
