@@ -186,7 +186,7 @@ def calculate_eval_metric(args, results_all, datareader):
             pred *= factor # scaling image to world scale
         
         # Root-relative Errors
-        if args.model in ['MB', 'DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_torso', 'DHDSTformer_torso_limb', 'DHDSTformer_right_upper_arm2']: # only model that predict pelvis point
+        if (args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total4', 'DHDSTformer_torso', 'DHDSTformer_torso_limb', 'DHDSTformer_right_upper_arm2']) or ('MB' in args.model): # only model that predict pelvis point
             pred = pred - pred[:,0:1,:] # (243, 17, 3)
             gt = gt - gt[:,0:1,:] # (243, 17, 3)
         
@@ -237,6 +237,9 @@ def calculate_eval_metric(args, results_all, datareader):
             else:
                 err1 = np.mean(err1_per_joint[:, joint_list], axis=1) # mpjpe(pred, gt) # (243, )
                 err2 = np.mean(err2_per_joint[:, joint_list], axis=1) # p_mpjpe(pred, gt)
+            if 'no_factor' in args.dt_file:
+                err1 *= 1000
+                err2 *= 1000
             total_result_dict[part]['e1_all'][frame_list] += err1 # (243, ) # 각 프레임 별 에러를 더해줌
             total_result_dict[part]['e2_all'][frame_list] += err2 # (243, ) # 각 프레임 별 에러를 더해줌
             total_result_dict[part]['oc'][frame_list] += 1

@@ -3,17 +3,23 @@ train_2d: False
 no_eval: False
 finetune: False
 partial_train: null
+test_run: False
 
 # Traning 
 epochs: 60
-checkpoint_frequency: 60
-batch_size: 8
+checkpoint_frequency: 30
+batch_size: 16
 dropout: 0.0
 learning_rate: 0.0002
 weight_decay: 0.01
 lr_decay: 0.99
 
+# Test
+part_list: ['whole'] 
+denormalize_output: False
+
 # Model
+model: 'MB_train_h36m_gt_cam_no_factor'
 maxlen: 243
 dim_feat: 512
 mlp_ratio: 2
@@ -24,8 +30,8 @@ att_fuse: True
 
 # Data
 data_root: data/motion3d/MB3D_f243s81/
-subset_list: [H36M-GT_TRAIN_S1]
-dt_file: h36m_train_s1_test_s5678.pkl
+subset_list: [H36M-GT-CAM_NO_FACTOR]
+dt_file: h36m_gt_no_factor.pkl
 clip_len: 243
 data_stride: 81
 rootrel: True
@@ -33,6 +39,7 @@ sample_stride: 1
 num_joints: 17
 no_conf: False
 gt_2d: False
+gt_mode: 'cam_3d' # in m
 
 # Loss
 lambda_3d_pos: 1.0
@@ -49,4 +56,3 @@ flip: True
 mask_ratio: 0.
 mask_T_ratio: 0.
 noise: False
-
