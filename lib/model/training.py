@@ -36,7 +36,7 @@ def preprocess_train(args, batch_input, batch_gt, has_3d, has_gt):
     return batch_input, batch_gt, batch_gt_torso, batch_gt_limb, conf
 
 def inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso):
-    if 'DHDSTformer_total' in args.model:
+    if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3']: 
         predicted_3d_pos = model_pos(batch_input, length_type=args.train_length_type, ref_frame=args.length_frame)
         if args.lambda_dh_angle > 0:
             pred_angle = get_limb_angle(predicted_3d_pos)
@@ -45,24 +45,26 @@ def inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso):
             pred_angle = None
             gt_angle = None
         return predicted_3d_pos, pred_angle, gt_angle
+    
+    elif args.model in ['DHDSTformer_total4']:
+        pred_torso, pred_dh_angle, pred_dh_length, pred_lower_frame_R, pred_upper_frame_R, predicted_3d_pos = model_pos(batch_input)
+        return pred_torso, pred_dh_angle, pred_dh_length, pred_lower_frame_R, pred_upper_frame_R, predicted_3d_pos
+
     elif 'DHDSTformer_limb' in args.model:
         predicted_3d_pos = model_pos(batch_input, batch_gt_torso)
         pred_limb_pos = predicted_3d_pos[:, :, [2, 3, 5, 6, 12, 13, 15, 16], :]
         return predicted_3d_pos, pred_limb_pos
+    
     elif 'DHDSTformer_torso' in args.model:
-        # get labels
-        batch_lower_origin, batch_lower_R = get_batch_lower_torso_frame_from_pose(batch_gt)
-        batch_upper_origin, batch_upper_R = get_batch_upper_torso_frame_from_pose(batch_gt)
-        batch_lower_quat = matrix_to_quaternion(batch_lower_R)
-        batch_upper_quat = matrix_to_quaternion(batch_upper_R)
+        # inference
         pred_torso, pred_lower_frame_R, pred_upper_frame_R = model_pos(batch_input)
-        pred_lower_quat = matrix_to_quaternion(pred_lower_frame_R)
-        pred_upper_quat = matrix_to_quaternion(pred_upper_frame_R)
-        return pred_torso, batch_gt_torso, pred_lower_quat, pred_upper_quat, batch_lower_quat, batch_upper_quat
+        return pred_torso, pred_lower_frame_R, pred_upper_frame_R
+    
     elif 'DHDSTformer_torso2' in args.model:
         pred_torso = model_pos(batch_input)
         batch_gt_torso = batch_gt[:, :, [0, 1, 4, 8, 11, 14], :] # r_hip, l_hip, neck, l_shoulder, r_shoulder
         return pred_torso, batch_gt_torso
+    
     elif 'DHDST_onevec' in args.model:
         input, gt_root_point, gt_length, gt_angle = get_input_gt_for_onevec(batch_input, batch_gt)
         pred_root_point, pred_length, pred_angle = model_pos(input)
@@ -79,14 +81,17 @@ def inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso):
         else:
             gt_3d_pos[:, :, :, 2] = gt_3d_pos[:, :, :, 2] - gt_3d_pos[:, 0:1, 0:1, 2] 
         return pred_3d_pos, gt_3d_pos, pred_root_point, gt_root_point, pred_length, gt_length
+    
     elif 'DHDSTformer_right_arm' == args.model:
         batch_gt_limb = batch_gt[:, :, [14, 15, 16], :]
         pred_limb_pos = model_pos(batch_input)
         return pred_limb_pos, batch_gt_limb
+    
     elif ('DHDSTformer_right_arm2' == args.model) or ('DHDSTformer_right_arm3' == args.model):
         batch_gt_limb = batch_gt[:, :, [0, 14, 15, 16], :]
         pred_limb_pos = model_pos(batch_input) 
         return pred_limb_pos, batch_gt_limb
+    
     else:
         predicted_3d_pos = model_pos(batch_input)    # (N, T, 17, 3)
         if args.lambda_dh_angle > 0:

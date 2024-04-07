@@ -38,7 +38,7 @@ from lib.data.datareader_kookmin import DataReaderKOOKMIN
 from lib.model.loss import *
 from lib.model.training import *
 from lib.model.evaluation import *
-from lib.model.DHDSTformer import DHDSTformer_total, DHDSTformer_total2, DHDSTformer_total3, \
+from lib.model.DHDSTformer import DHDSTformer_total, DHDSTformer_total2, DHDSTformer_total3, DHDSTformer_total4, \
     DHDSTformer_limb, DHDSTformer_limb2, DHDSTformer_limb3, DHDSTformer_limb4, DHDSTformer_limb5, \
     DHDSTformer_right_arm, DHDSTformer_right_arm2, DHDSTformer_right_arm3, \
     DHDSTformer_torso, DHDSTformer_torso2, \
@@ -81,13 +81,35 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
         # preprocessing
         batch_input, batch_gt, batch_gt_torso, batch_gt_limb, conf = preprocess_train(args, batch_input, batch_gt, has_3d, has_gt)
         # inferece 3D poses
-        if 'DHDSTformer_total' in args.model: 
+        if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3']: 
             predicted_3d_pos, pred_angle, gt_angle = inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso)
+        elif args.model in ['DHDSTformer_total4']:
+            pred_torso, pred_dh_angle, pred_dh_length, pred_lower_frame_R, pred_upper_frame_R, predicted_3d_pos = inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso)
+            pred_dh_length = pred_dh_length.reshape(-1, 8)
+            pred_lower_quat = matrix_to_quaternion(pred_lower_frame_R)
+            pred_upper_quat = matrix_to_quaternion(pred_upper_frame_R)
+            # get frame label
+            batch_lower_origin, batch_lower_R = get_batch_lower_torso_frame_from_pose(batch_gt)
+            batch_upper_origin, batch_upper_R = get_batch_upper_torso_frame_from_pose(batch_gt)
+            batch_lower_quat = matrix_to_quaternion(batch_lower_R)
+            batch_upper_quat = matrix_to_quaternion(batch_upper_R)
+            # get limb, angle label
+            gt_dh_model = BatchDHModel(batch_gt, batch_size=batch_size, num_frames=args.clip_len, head=True)
+            gt_dh_angle = gt_dh_model.get_batch_appendage_angles() # (B, F, 16)
+            gt_dh_length = gt_dh_model.get_batch_appendage_length()[:, 0, :] # (B, 8)
+
         elif 'DHDSTformer_limb' in args.model:
             predicted_3d_pos, pred_limb_pos = inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso)
         elif 'DHDSTformer_torso' in args.model:
-            pred_torso, batch_gt_torso, pred_lower_quat, pred_upper_quat, batch_lower_quat, batch_upper_quat = \
-                inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso)
+            pred_torso, batch_gt_torso, pred_lower_frame_R, pred_upper_frame_R = inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso)
+            pred_lower_quat = matrix_to_quaternion(pred_lower_frame_R)
+            pred_upper_quat = matrix_to_quaternion(pred_upper_frame_R)
+            # get frame label
+            batch_lower_origin, batch_lower_R = get_batch_lower_torso_frame_from_pose(batch_gt)
+            batch_upper_origin, batch_upper_R = get_batch_upper_torso_frame_from_pose(batch_gt)
+            batch_lower_quat = matrix_to_quaternion(batch_lower_R)
+            batch_upper_quat = matrix_to_quaternion(batch_upper_R)
+            
         elif 'DHDSTformer_torso2' in args.model:
             pred_torso, batch_gt_torso = inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso)
         elif 'DHDST_onevec' in args.model:
@@ -177,6 +199,14 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
                 loss_onevec_pos = loss_mpjpe(pred_3d_pos, gt_3d_pos)
                 loss_total += args.lambda_onevec_pos * loss_onevec_pos
                 losses['onevec_pos'].update(loss_onevec_pos.item(), batch_size)
+            if args.lambda_dh_angle2 > 0:
+                loss_dh_angle2 = nn.L1Loss()(pred_dh_angle, gt_dh_angle)
+                loss_total += args.lambda_dh_angle2 * loss_dh_angle2
+                losses['dh_angle2'].update(loss_dh_angle2.item(), batch_size)
+            if args.lambda_dh_length > 0:
+                loss_dh_length = nn.MSELoss()(pred_dh_length, gt_dh_length)
+                loss_total += args.lambda_dh_length * loss_dh_length
+                losses['dh_length'].update(loss_dh_length.item(), batch_size)
             losses['total'].update(loss_total.item(), batch_size)
         else:
             loss_2d_proj = loss_2d_weighted(predicted_3d_pos, batch_gt, conf)
@@ -247,9 +277,10 @@ def train_with_config(args, opts):
         chk_filename = ''
 
     print(args.model)
-    if 'DHDSTformer_total' in args.model: model_pos = DHDSTformer_total(chk_filename=chk_filename, args=args)
-    elif 'DHDSTformer_total2' in args.model: model_pos = DHDSTformer_total2(chk_filename=chk_filename, args=args)
-    elif 'DHDSTformer_total3' in args.model: model_pos = DHDSTformer_total3(chk_filename=chk_filename, args=args)
+    if 'DHDSTformer_total' == args.model: model_pos = DHDSTformer_total(chk_filename=chk_filename, args=args)
+    elif 'DHDSTformer_total2' == args.model: model_pos = DHDSTformer_total2(chk_filename=chk_filename, args=args)
+    elif 'DHDSTformer_total3' == args.model: model_pos = DHDSTformer_total3(chk_filename=chk_filename, args=args)
+    elif 'DHDSTformer_total4' == args.model: model_pos = DHDSTformer_total4(args=args)
     elif args.model == 'DHDSTformer_torso': model_pos = DHDSTformer_torso(chk_filename=chk_filename, args=args)
     elif args.model == 'DHDSTformer_torso2': model_pos = DHDSTformer_torso2(chk_filename=chk_filename, args=args)
     elif args.model == 'DHDSTformer_limb': model_pos = DHDSTformer_limb(chk_filename=chk_filename, args=args)
@@ -357,6 +388,8 @@ def train_with_config(args, opts):
             if args.lambda_length > 0:        losses['length'] = AverageMeter()
             if args.lambda_dh_angle > 0:      losses['dh_angle'] = AverageMeter()
             if args.lambda_onevec_pos:        losses['onevec_pos'] = AverageMeter()
+            if args.lambda_dh_angle2 > 0:     losses['dh_angle2'] = AverageMeter()
+            if args.lambda_dh_length > 0:     losses['dh_length'] = AverageMeter()
             losses['total'] = AverageMeter()
             losses['2d_proj'] = AverageMeter()
             #N = 0
@@ -412,6 +445,8 @@ def train_with_config(args, opts):
                 if args.lambda_length > 0:        train_writer.add_scalar('loss_length', losses['length'].avg, epoch + 1)
                 if args.lambda_dh_angle > 0:      train_writer.add_scalar('loss_dh_angle', losses['dh_angle'].avg, epoch + 1)
                 if args.lambda_onevec_pos:        train_writer.add_scalar('loss_onevec_pos', losses['onevec_pos'].avg, epoch + 1)
+                if args.lambda_dh_angle2 > 0:     train_writer.add_scalar('loss_dh_angle2', losses['dh_angle2'].avg, epoch + 1)
+                if args.lambda_dh_length > 0:     train_writer.add_scalar('loss_dh_length', losses['dh_length'].avg, epoch + 1)
                 if 'arms' in args.part_list:
                     arm_mpjpe = np.mean([np.mean(total_result_dict['arms']['results'][key]) for key in total_result_dict['arms']['results'].keys()])
                     arm_mpjpe_procrustes = np.mean([np.mean(total_result_dict['arms']['results_procrustes'][key]) for key in total_result_dict['arms']['results_procrustes'].keys()])

@@ -25,11 +25,13 @@ def preprocess_eval(args, batch_input, batch_gt):
 def batch_inference_eval(args, model_pos, batch_input, batch_gt_torso, batch_gt_limb_pos):
     if args.flip:    
         batch_input_flip = flip_data(batch_input)
-        if 'DHDSTformer_total' in args.model:
+        if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3']: 
             predicted_3d_pos_1 = model_pos(batch_input, length_type=args.test_length_type, ref_frame=args.length_frame)
             predicted_3d_pos_flip = model_pos(batch_input_flip, length_type=args.test_length_type, ref_frame=args.length_frame)
             predicted_3d_pos_2 = flip_data(predicted_3d_pos_flip)                   # Flip back
             predicted_3d_pos = (predicted_3d_pos_1+predicted_3d_pos_2) / 2
+        elif args.model in ['DHDSTformer_total4']:
+            raise NotImplementedError('Not implemented yet')
         elif 'DHDSTformer_limb' in args.model:
             predicted_3d_pos_1 = model_pos(batch_input, batch_gt_torso)
             predicted_3d_pos_flip = model_pos(batch_input_flip, batch_gt_torso)
@@ -51,8 +53,10 @@ def batch_inference_eval(args, model_pos, batch_input, batch_gt_torso, batch_gt_
             predicted_3d_pos_2 = flip_data(predicted_3d_pos_flip)                   # Flip back
             predicted_3d_pos = (predicted_3d_pos_1+predicted_3d_pos_2) / 2
     else:
-        if 'DHDSTformer_total' in args.model:
+        if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3']: 
             predicted_3d_pos = model_pos(batch_input, length_type=args.test_length_type, ref_frame=args.length_frame)
+        elif args.model in ['DHDSTformer_total4']:
+            pred_torso, pred_dh_angle, pred_dh_length, pred_lower_frame_R, pred_upper_frame_R, predicted_3d_pos = model_pos(batch_input)
         elif 'DHDSTformer_limb' in args.model:
             predicted_3d_pos = model_pos(batch_input, batch_gt_torso)
         elif 'DHDSTformer_torso' in args.model:
@@ -93,7 +97,7 @@ def inference_eval(args, model_pos, test_loader, datareader):
     inputs_all = np.concatenate(inputs_all)
     if args.denormalize_output:
         results_all = datareader.denormalize(results_all) # denormalize the predicted 3D poses
-    
+
     return results_all
 
 def get_clip_info(datareader, results_all):
@@ -113,7 +117,7 @@ def get_clip_info(datareader, results_all):
     source_clips = np.array([sources[split_id_test[i]] for i in range(len(split_id_test))]) # sources[split_id_test]
     frame_clips  = np.array([frames[split_id_test[i]] for i in range(len(split_id_test))]) # frames[split_id_test]
     gt_clips     = np.array([gts[split_id_test[i]] for i in range(len(split_id_test))]) # gts[split_id_test]
-    assert len(results_all)==len(action_clips)
+    assert len(results_all)==len(action_clips), f'The number of results and action_clips are different: {len(results_all)} vs {len(action_clips)}'
 
     return num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions
 
@@ -179,7 +183,7 @@ def calculate_eval_metric(args, results_all, datareader):
         factor = factor_clips[idx][:,None,None]
         gt = gt_clips[idx]
         pred = results_all[idx]
-        if 'no_factor' not in args.model:
+        if 'no_factor' not in args.dt_file:
             pred *= factor # scaling image to world scale
         
         # Root-relative Errors

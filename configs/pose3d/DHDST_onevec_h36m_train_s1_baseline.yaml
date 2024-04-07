@@ -48,7 +48,7 @@ pred_length: True
 # Loss
 lambda_root_point: 1
 lambda_length: 1
-lambda_angle: 1
+lambda_dh_angle: 1
 
 # Augmentation
 synthetic: False

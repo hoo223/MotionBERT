@@ -57,7 +57,7 @@ class DHDSTformer_total(nn.Module):
         left_leg_output  =  self.left_leg_head2(self.left_leg_head1(rep[:, :, [4, 5, 6], :].flatten(2))) # (N, F, 6)
         
         # update dh model
-        self.batch_dh_model.set_dh_model_from_dhdst_output(torso_output, right_arm_output, left_arm_output, right_leg_output, left_leg_output)
+        self.batch_dh_model.set_batch_dh_model_from_dhdst_output(torso_output, right_arm_output, left_arm_output, right_leg_output, left_leg_output)
         
         return self.batch_dh_model.get_batch_pose_3d()
     
@@ -127,7 +127,7 @@ class DHDSTformer_total2(nn.Module):
         left_leg_output  = torch.cat([left_leg_angle, left_leg_length], dim=-1)
         
         # update dh model
-        self.batch_dh_model.set_dh_model_from_dhdst_output(torso_output, right_arm_output, left_arm_output, right_leg_output, left_leg_output)
+        self.batch_dh_model.set_batch_dh_model_from_dhdst_output(torso_output, right_arm_output, left_arm_output, right_leg_output, left_leg_output)
         
         return self.batch_dh_model.get_batch_pose_3d()
     
@@ -146,7 +146,6 @@ class DHDSTformer_total3(nn.Module):
         
         self.dstformer_backbone = load_backbone(args)
         self.dstformer_backbone = nn.DataParallel(self.dstformer_backbone)
-        self.dstformer_backbone = self.dstformer_backbone
         if chk_filename:
             checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
             self.dstformer_backbone.load_state_dict(checkpoint['model_pos'], strict=True)
@@ -204,9 +203,89 @@ class DHDSTformer_total3(nn.Module):
         left_leg_output  = torch.cat([left_leg_angle, left_leg_length], dim=-1)
         
         # update dh model
-        self.batch_dh_model.set_dh_model_from_dhdst_output(torso_output, right_arm_output, left_arm_output, right_leg_output, left_leg_output)
+        self.batch_dh_model.set_batch_dh_model_from_dhdst_output(torso_output, right_arm_output, left_arm_output, right_leg_output, left_leg_output)
         
         return self.batch_dh_model.get_batch_pose_3d()
+    
+class DHDSTformer_total4(nn.Module):
+    def __init__(self, args, dim_out=3, data_type=torch.float32):
+        super().__init__()
+        self.batch_size = args.batch_size
+        self.num_frames = args.clip_len
+        self.data_type = data_type
+        self.torso_keypoints = [0, 1, 4, 7, 8, 9, 10, 11, 14]
+        self.right_arm_keypoints = [14, 15, 16]
+        self.left_arm_keypoints = [11, 12, 13]
+        self.arm_keypoints = self.right_arm_keypoints + self.left_arm_keypoints
+        self.right_leg_keypoints = [1, 2, 3]
+        self.left_leg_keypoints = [4, 5, 6]
+        self.leg_keypoints = self.right_leg_keypoints + self.left_leg_keypoints
+
+        # backbone
+        self.dstformer_backbone = load_backbone(args)
+        self.dstformer_backbone = nn.DataParallel(self.dstformer_backbone)
+        self.torso_head = nn.Linear(args.dim_rep, 3)
+        self.angle_head = nn.Linear(args.dim_rep, 4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.length_head = nn.Linear(args.dim_rep, 2) # 4: length1, length2
+
+        # batch_dh_model
+        self.batch_dh_model = BatchDHModel(None, batch_size=self.batch_size, num_frames=self.num_frames, length_type='first')
+         
+    def forward(self, batch_input):
+        # batch_x: (B, F, 17, 2) 2d pose
+
+        # update batch size
+        self.batch_size = batch_input.shape[0]
+        self.batch_dh_model = BatchDHModel(None, batch_size=self.batch_size, num_frames=self.num_frames, length_type='first')
+        self.batch_dh_model.batch_size = self.batch_size
+
+        # feature extraction
+        feature = self.dstformer_backbone.module.get_representation(batch_input) # [B, F, J, dim_rep]
+        torso_feature = feature[:, :, self.torso_keypoints, :] # (B, F, 9, dim_rep)
+        right_arm_feature = feature[:, :, self.right_arm_keypoints, :] # (B, F, 3, dim_rep)
+        left_arm_feature  = feature[:, :, self.left_arm_keypoints, :]  # (B, F, 3, dim_rep)
+        arm_feature = feature[:, :, self.arm_keypoints, :]  # (B, F, 6, dim_rep)
+        right_leg_feature = feature[:, :, self.right_leg_keypoints, :] # (B, F, 3, dim_rep)
+        left_leg_feature  = feature[:, :, self.left_leg_keypoints, :]  # (B, F, 3, dim_rep)
+        leg_feature = feature[:, :, self.leg_keypoints, :]  # (B, F, 6, dim_rep)
+
+        # torso output
+        torso_output  = self.torso_head(torso_feature) # (B, F, 9, 3)
+        batch_pelvis = torso_output[:, :, 0, :]
+        batch_r_hip = torso_output[:, :, 1, :]
+        batch_l_hip = torso_output[:, :, 2, :]
+        batch_torso = torso_output[:, :, 3, :]
+        batch_neck = torso_output[:, :, 4, :]
+        #batch_nose = torso_output[:, :, 5, :]
+        #batch_head = torso_output[:, :, 6, :]
+        batch_l_shoulder = torso_output[:, :, 7, :]
+        batch_r_shoulder = torso_output[:, :, 8, :]
+        batch_lower_frame_origin, batch_lower_frame_R = get_batch_lower_torso_frame_from_keypoints(batch_r_hip, batch_l_hip, batch_pelvis, batch_torso)
+        batch_upper_frame_origin, batch_upper_frame_R = get_batch_upper_torso_frame_from_keypoints(batch_r_shoulder, batch_l_shoulder, batch_torso, batch_neck)
+
+        # limb output -> left/right length should be same for upper/lower arm/leg
+        right_arm_angle = F.adaptive_avg_pool2d(self.angle_head(right_arm_feature), (1, 4)).squeeze(2)  # (B, F, 4) -> 0: upper yaw, 1: upper pitch, 2: lower yaw, 3: lower pitch
+        left_arm_angle  = F.adaptive_avg_pool2d(self.angle_head(left_arm_feature), (1, 4)).squeeze(2)   # (B, F, 4)
+        right_leg_angle = F.adaptive_avg_pool2d(self.angle_head(right_leg_feature), (1, 4)) .squeeze(2) # (B, F, 4)
+        left_leg_angle  = F.adaptive_avg_pool2d(self.angle_head(left_leg_feature), (1, 4)).squeeze(2)   # (B, F, 4)
+        angle_output = torch.cat([right_arm_angle, left_arm_angle, right_leg_angle, left_leg_angle], dim=-1) # (B, F, 16)
+
+        right_arm_length = F.adaptive_avg_pool2d(self.length_head(right_arm_feature).permute(0, 3, 2, 1), (1, 1)).squeeze(2) # (B, 2, 1) -> 0: upper length, 1: lower length
+        left_arm_length  = F.adaptive_avg_pool2d(self.length_head(left_arm_feature).permute(0, 3, 2, 1), (1, 1)).squeeze(2)  # (B, 2, 1)
+        right_leg_length = F.adaptive_avg_pool2d(self.length_head(right_leg_feature).permute(0, 3, 2, 1), (1, 1)).squeeze(2) # (B, 2, 1)
+        left_leg_length  = F.adaptive_avg_pool2d(self.length_head(left_leg_feature).permute(0, 3, 2, 1), (1, 1)).squeeze(2)  # (B, 2, 1)
+        length_output = torch.cat([right_arm_length, left_arm_length, right_leg_length, left_leg_length], dim=-1) # (B, 2, 4)
+        
+        # update dh model
+        self.batch_dh_model.set_batch_torso(torso_output)
+        self.batch_dh_model.set_batch_torso_frame()
+        self.batch_dh_model.set_batch_length(length_output, update_appendage=False)
+        self.batch_dh_model.set_batch_angle(angle_output, update_appendage=False)
+        self.batch_dh_model.generate_all_batch_appendages()
+        self.batch_dh_model.forward_batch_appendage()
+        predicted_3d_pos = self.batch_dh_model.get_batch_pose_3d()
+
+        return torso_output, angle_output, length_output, batch_lower_frame_R, batch_upper_frame_R, predicted_3d_pos
     
 class DHDSTformer_torso(nn.Module):
     def __init__(self, args, chk_filename='', dim_out=3, data_type=torch.float32):
@@ -426,7 +505,7 @@ class DHDSTformer_limb(nn.Module):
         left_leg_output  = torch.cat([left_leg_angle, left_leg_length], dim=-1)
         
         # update dh model
-        self.batch_dh_model.set_dh_model_from_dhdst_output(batch_torso, right_arm_output, left_arm_output, right_leg_output, left_leg_output)
+        self.batch_dh_model.set_batch_dh_model_from_dhdst_output(batch_torso, right_arm_output, left_arm_output, right_leg_output, left_leg_output)
         
         return self.batch_dh_model.get_batch_pose_3d()
 

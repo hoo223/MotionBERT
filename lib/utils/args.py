@@ -67,6 +67,10 @@ def check_args(args, opts):
     except: args.lambda_dh_angle = 0.0
     try: test = args.lambda_onevec_pos
     except: args.lambda_onevec_pos = 0.0
+    try: test = args.lambda_dh_angle2
+    except: args.lambda_dh_angle2 = 0.0
+    try: test = args.lambda_dh_length
+    except: args.lambda_dh_length = 0.0
 
     try: test = args.canonical
     except: args.canonical = False
