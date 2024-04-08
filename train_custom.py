@@ -200,7 +200,7 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
                 loss_total += args.lambda_onevec_pos * loss_onevec_pos
                 losses['onevec_pos'].update(loss_onevec_pos.item(), batch_size)
             if args.lambda_dh_angle2 > 0:
-                loss_dh_angle2 = nn.L1Loss()(pred_dh_angle, gt_dh_angle)
+                loss_dh_angle2 = nn.MSELoss()(pred_dh_angle, gt_dh_angle)
                 loss_total += args.lambda_dh_angle2 * loss_dh_angle2
                 losses['dh_angle2'].update(loss_dh_angle2.item(), batch_size)
             if args.lambda_dh_length > 0:
