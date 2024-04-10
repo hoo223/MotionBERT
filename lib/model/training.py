@@ -46,7 +46,7 @@ def inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso):
             gt_angle = None
         return predicted_3d_pos, pred_angle, gt_angle
     
-    elif args.model in ['DHDSTformer_total4']:
+    elif args.model in ['DHDSTformer_total4', 'DHDSTformer_total5']:
         pred_torso, pred_dh_angle, pred_dh_length, pred_lower_frame_R, pred_upper_frame_R, predicted_3d_pos = model_pos(batch_input)
         return pred_torso, pred_dh_angle, pred_dh_length, pred_lower_frame_R, pred_upper_frame_R, predicted_3d_pos
 
