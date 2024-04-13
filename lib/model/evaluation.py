@@ -202,7 +202,11 @@ def calculate_eval_metric(args, results_all, datareader):
         
         if not args.mpjpe_after_part:
             err1_per_joint = mpjpe_for_each_joint(pred, gt) # (243, 17)
-            err2_per_joint = p_mpjpe_for_each_joint(pred, gt) # (243, 17)
+            try:
+                err2_per_joint = p_mpjpe_for_each_joint(pred, gt) # (243, 17)
+            except:
+                #print('failed to calculate p_mpjpe')
+                err2_per_joint = np.ones_like(err1_per_joint) * -1000
         
         for part in part_list:
             if part == 'whole': joint_list = [j for j in range(pred.shape[1])]

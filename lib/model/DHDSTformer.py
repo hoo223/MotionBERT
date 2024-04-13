@@ -1232,9 +1232,9 @@ class DHDSTformer_right_arm3(nn.Module):
         
 #         return root_tf
         
-#     def forward_appendage(self, root_tf, batch_link1_azim, batch_link1_elev, batch_link2_yaw, batch_link2_pitch, batch_l1_length, batch_l2_length):
+#     def forward_appendage(self, root_tf, batch_link1_azim, batch_link1_elev, batch_link2_azim, batch_link2_elev, batch_l1_length, batch_l2_length):
 #         batch_link1_mat = self.batch_DH_matrix(batch_link1_azim, batch_link1_elev, self.batch_zero, self.batch_zero) # [B, F, 4, 4]
-#         batch_link2_mat = self.batch_DH_matrix(batch_link2_yaw, batch_link2_pitch, self.batch_zero, batch_l1_length) # [B, F, 4, 4]
+#         batch_link2_mat = self.batch_DH_matrix(batch_link2_azim, batch_link2_elev, self.batch_zero, batch_l1_length) # [B, F, 4, 4]
 #         batch_terminal_mat = self.batch_DH_matrix(self.batch_zero, self.batch_zero, self.batch_zero, batch_l2_length) # [B, F, 4, 4]
         
 #         batch_link1_tf = torch.matmul(root_tf, batch_link1_mat) # [B, F, 4, 4]
@@ -1522,9 +1522,9 @@ class DHDSTformer_right_arm3(nn.Module):
 #         self.root_tf[:, :, self.right_leg_id, :3, 3] = self.batch_r_hip # right leg
 #         self.root_tf[:, :, self.left_leg_id , :3, 3] = self.batch_l_hip # left leg
         
-#     def forward_appendage(self, appendage_id, batch_link1_azim, batch_link1_elev, batch_link2_yaw, batch_link2_pitch, batch_l1_length, batch_l2_length):
+#     def forward_appendage(self, appendage_id, batch_link1_azim, batch_link1_elev, batch_link2_azim, batch_link2_elev, batch_l1_length, batch_l2_length):
 #         batch_link1_mat = self.batch_DH_matrix(batch_link1_azim, batch_link1_elev, self.batch_zero, self.batch_zero) # [B, F, 4, 4]
-#         batch_link2_mat = self.batch_DH_matrix(batch_link2_yaw, batch_link2_pitch, self.batch_zero, batch_l1_length) # [B, F, 4, 4]
+#         batch_link2_mat = self.batch_DH_matrix(batch_link2_azim, batch_link2_elev, self.batch_zero, batch_l1_length) # [B, F, 4, 4]
 #         batch_terminal_mat = self.batch_DH_matrix(self.batch_zero, self.batch_zero, self.batch_zero, batch_l2_length) # [B, F, 4, 4]
         
 #         batch_link1_tf = torch.matmul(self.root_tf[:, :, appendage_id, :, :], batch_link1_mat) # [B, F, 4, 4]
