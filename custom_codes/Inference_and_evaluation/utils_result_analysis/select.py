@@ -45,3 +45,12 @@ def get_part_select(part_list):
         description='Part',
         disabled=False
     )
+
+def get_part_select2(part_list):
+    return widgets.Select(
+        options=part_list,
+        value=part_list[0],
+        rows=len(part_list),
+        description='Part',
+        disabled=False
+    )
