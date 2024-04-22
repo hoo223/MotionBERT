@@ -288,16 +288,14 @@ class DHDSTformer_total4(nn.Module):
         return torso_output, angle_output, length_output, batch_lower_frame_R, batch_upper_frame_R, predicted_3d_pos
     
 class linear_head(nn.Module):
-    def __init__(self, linear_size=1024, out_dim=3, p_dropout=0.5):
+    def __init__(self, linear_size=1024, out_dim=3, num_layers=2, p_dropout=0.5):
         super(linear_head, self).__init__()
 
         self.linear_stages = nn.ModuleList()
-        self.linear_stages.append(nn.Linear(linear_size, linear_size))
-        self.linear_stages.append(nn.ReLU())
-        self.linear_stages.append(nn.Dropout(p_dropout))            
-        self.linear_stages.append(nn.Linear(linear_size, linear_size))
-        self.linear_stages.append(nn.ReLU())
-        self.linear_stages.append(nn.Dropout(p_dropout))
+        for i in range(num_layers):
+            self.linear_stages.append(nn.Linear(linear_size, linear_size))
+            self.linear_stages.append(nn.ReLU())
+            self.linear_stages.append(nn.Dropout(p_dropout))            
         self.linear_stages.append(nn.Linear(linear_size, int(linear_size/2)))
         self.linear_stages.append(nn.Linear(int(linear_size/2), out_dim))
 
@@ -385,6 +383,76 @@ class DHDSTformer_total5(nn.Module):
         predicted_3d_pos = self.batch_dh_model.get_batch_pose_3d()
 
         return torso_output, angle_output, length_output, batch_lower_frame_R, batch_upper_frame_R, predicted_3d_pos
+    
+# 3D pose -> IK by neural network -> FK -> MPJPE
+class DHDSTformer_total6(nn.Module):
+    def __init__(self, args, chk_filename='', dim_out=3, num_layers_head=1, data_type=torch.float32):
+        super().__init__()
+        self.batch_size = args.batch_size
+        self.num_frames = args.clip_len
+        self.data_type = data_type
+        
+        # appendage id
+        self.right_arm_id = 0
+        self.left_arm_id  = 1
+        self.right_leg_id = 2
+        self.left_leg_id  = 3
+        
+        self.dstformer_backbone = load_backbone(args)
+        self.dstformer_backbone = nn.DataParallel(self.dstformer_backbone)
+        if chk_filename:
+            checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
+            self.dstformer_backbone.load_state_dict(checkpoint['model_pos'], strict=True)
+        
+        #self.torso_head = nn.Linear(args.dim_rep, dim_out)
+        self.right_arm_head = nn.Linear(dim_out*3, args.dim_rep)
+        self.right_arm_head_angle = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.right_arm_head_length = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=2) # 2: length1, length2
+        self.left_arm_head  = nn.Linear(dim_out*3, args.dim_rep)
+        self.left_arm_head_angle = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.left_arm_head_length = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=2) # 2: length1, length2
+        self.right_leg_head = nn.Linear(dim_out*3, args.dim_rep)
+        self.right_leg_head_angle = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.right_leg_head_length = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=2) # 2: length1, length2
+        self.left_leg_head  = nn.Linear(dim_out*3, args.dim_rep)
+        self.left_leg_head_angle = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.left_leg_head_length = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=2) # 2: length1, length2
+         
+    def forward(self, batch_input, length_type='each', ref_frame=0):
+        # batch_x: (B, F, 17, 2) 2d pose
+        # rep: (B, F, 17, dim_rep) hidden representation
+        
+        # update batch size
+        self.batch_size = batch_input.shape[0]
+        self.batch_dh_model = BatchDHModel(None, batch_size=self.batch_size, num_frames=self.num_frames, data_type=self.data_type, device=batch_input.device)
+        self.batch_dh_model.batch_size = self.batch_size
+
+        # inference
+        rep = self.dstformer_backbone.module.forward(batch_input)
+        torso_output  = rep[:, :, [0, 1, 4, 7, 8, 9, 10, 11, 14], :] # (N, F, 9, 3)
+        right_arm_rep = self.right_arm_head(rep[:, :, [14, 15, 16], :].flatten(2)) # (N, F, 9) -> (N, F, dim_rep)
+        left_arm_rep  =  self.left_arm_head(rep[:, :, [11, 12, 13], :].flatten(2))
+        right_leg_rep = self.right_leg_head(rep[:, :, [1, 2, 3], :].flatten(2))
+        left_leg_rep  =  self.left_leg_head(rep[:, :, [4, 5, 6], :].flatten(2))
+         
+        right_arm_angle  = self.right_arm_head_angle(right_arm_rep) # (N, F, dim_rep) -> (N, F, 4)
+        left_arm_angle   = self.left_arm_head_angle(left_arm_rep) # (N, F, dim_rep) -> (N, F, 4)
+        right_leg_angle  = self.right_leg_head_angle(right_leg_rep) # (N, F, dim_rep) -> (N, F, 4)
+        left_leg_angle   = self.left_leg_head_angle(left_leg_rep) # (N, F, dim_rep) -> (N, F, 4)
+        right_arm_length = self.right_arm_head_length(right_arm_rep) # (N, F, dim_rep) -> (N, F, 2)
+        left_arm_length  = self.left_arm_head_length(left_arm_rep) # (N, F, dim_rep) -> (N, F, 2)
+        right_leg_length = self.right_leg_head_length(right_leg_rep) # (N, F, dim_rep) -> (N, F, 2)
+        left_leg_length  = self.left_leg_head_length(left_leg_rep) # (N, F, dim_rep) -> (N, F, 2)
+        
+        right_arm_output = torch.cat([right_arm_angle, right_arm_length], dim=-1)
+        left_arm_output  = torch.cat([left_arm_angle, left_arm_length], dim=-1)
+        right_leg_output = torch.cat([right_leg_angle, right_leg_length], dim=-1)
+        left_leg_output  = torch.cat([left_leg_angle, left_leg_length], dim=-1)
+        
+        # update dh model
+        self.batch_dh_model.set_batch_dh_model_from_dhdst_output(torso_output, right_arm_output, left_arm_output, right_leg_output, left_leg_output)
+        
+        return self.batch_dh_model.get_batch_pose_3d()
     
 class DHDSTformer_torso(nn.Module):
     def __init__(self, args, chk_filename='', dim_out=3, data_type=torch.float32):

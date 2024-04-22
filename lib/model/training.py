@@ -36,7 +36,7 @@ def preprocess_train(args, batch_input, batch_gt, has_3d, has_gt):
     return batch_input, batch_gt, batch_gt_torso, batch_gt_limb, conf
 
 def inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso):
-    if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3']: 
+    if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total6']: 
         predicted_3d_pos = model_pos(batch_input, length_type=args.train_length_type, ref_frame=args.length_frame)
         if args.lambda_dh_angle > 0:
             pred_angle = get_limb_angle(predicted_3d_pos)

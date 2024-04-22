@@ -25,7 +25,7 @@ def preprocess_eval(args, batch_input, batch_gt):
 def batch_inference_eval(args, model_pos, batch_input, batch_gt_torso, batch_gt_limb_pos):
     if args.flip:    
         batch_input_flip = flip_data(batch_input)
-        if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3']: 
+        if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total6']: 
             predicted_3d_pos_1 = model_pos(batch_input, length_type=args.test_length_type, ref_frame=args.length_frame)
             predicted_3d_pos_flip = model_pos(batch_input_flip, length_type=args.test_length_type, ref_frame=args.length_frame)
             predicted_3d_pos_2 = flip_data(predicted_3d_pos_flip)                   # Flip back
@@ -53,7 +53,7 @@ def batch_inference_eval(args, model_pos, batch_input, batch_gt_torso, batch_gt_
             predicted_3d_pos_2 = flip_data(predicted_3d_pos_flip)                   # Flip back
             predicted_3d_pos = (predicted_3d_pos_1+predicted_3d_pos_2) / 2
     else:
-        if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3']: 
+        if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total6']: 
             predicted_3d_pos = model_pos(batch_input, length_type=args.test_length_type, ref_frame=args.length_frame)
         elif args.model in ['DHDSTformer_total4', 'DHDSTformer_total5']:
             pred_torso, pred_dh_angle, pred_dh_length, pred_lower_frame_R, pred_upper_frame_R, predicted_3d_pos = model_pos(batch_input)
@@ -187,7 +187,7 @@ def calculate_eval_metric(args, results_all, datareader):
             pred *= factor # scaling image to world scale
         
         # Root-relative Errors
-        if (args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total4', 'DHDSTformer_total5', 'DHDSTformer_torso', 'DHDSTformer_torso_limb', 'DHDSTformer_right_upper_arm2']) or ('MB' in args.model): # only model that predict pelvis point
+        if (args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total4', 'DHDSTformer_total5', 'DHDSTformer_total6', 'DHDSTformer_torso', 'DHDSTformer_torso_limb', 'DHDSTformer_right_upper_arm2']) or ('MB' in args.model): # only model that predict pelvis point
             pred = pred - pred[:,0:1,:] # (243, 17, 3)
             gt = gt - gt[:,0:1,:] # (243, 17, 3)
         

@@ -38,7 +38,7 @@ from lib.data.datareader_kookmin import DataReaderKOOKMIN
 from lib.model.loss import *
 from lib.model.training import *
 from lib.model.evaluation import *
-from lib.model.DHDSTformer import DHDSTformer_total, DHDSTformer_total2, DHDSTformer_total3, DHDSTformer_total4, DHDSTformer_total5, \
+from lib.model.DHDSTformer import DHDSTformer_total, DHDSTformer_total2, DHDSTformer_total3, DHDSTformer_total4, DHDSTformer_total5, DHDSTformer_total6, \
     DHDSTformer_limb, DHDSTformer_limb2, DHDSTformer_limb3, DHDSTformer_limb4, DHDSTformer_limb5, \
     DHDSTformer_right_arm, DHDSTformer_right_arm2, DHDSTformer_right_arm3, \
     DHDSTformer_torso, DHDSTformer_torso2, \
@@ -81,7 +81,7 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
         # preprocessing
         batch_input, batch_gt, batch_gt_torso, batch_gt_limb, conf = preprocess_train(args, batch_input, batch_gt, has_3d, has_gt)
         # inferece 3D poses
-        if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3']: 
+        if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total6']: 
             predicted_3d_pos, pred_angle, gt_angle = inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso)
         elif args.model in ['DHDSTformer_total4', 'DHDSTformer_total5']:
             pred_torso, pred_dh_angle, pred_dh_length, pred_lower_frame_R, pred_upper_frame_R, predicted_3d_pos = inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso)
@@ -282,6 +282,7 @@ def train_with_config(args, opts):
     elif 'DHDSTformer_total3' == args.model: model_pos = DHDSTformer_total3(chk_filename=chk_filename, args=args)
     elif 'DHDSTformer_total4' == args.model: model_pos = DHDSTformer_total4(args=args)
     elif 'DHDSTformer_total5' == args.model: model_pos = DHDSTformer_total5(args=args)
+    elif 'DHDSTformer_total6' == args.model: model_pos = DHDSTformer_total6(chk_filename=chk_filename, args=args)
     elif args.model == 'DHDSTformer_torso': model_pos = DHDSTformer_torso(chk_filename=chk_filename, args=args)
     elif args.model == 'DHDSTformer_torso2': model_pos = DHDSTformer_torso2(chk_filename=chk_filename, args=args)
     elif args.model == 'DHDSTformer_limb': model_pos = DHDSTformer_limb(chk_filename=chk_filename, args=args)
