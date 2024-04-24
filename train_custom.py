@@ -125,6 +125,8 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
         if has_3d:
             loss_total = 0
             if args.lambda_3d_pos > 0:
+                # print(torch.norm(predicted_3d_pos), torch.norm(batch_gt))
+                #print(predicted_3d_pos[0][0], batch_gt[0][0])
                 loss_3d_pos = loss_mpjpe(predicted_3d_pos, batch_gt)
                 loss_total += args.lambda_3d_pos * loss_3d_pos
                 losses['3d_pos'].update(loss_3d_pos.item(), batch_size)
@@ -270,63 +272,65 @@ def train_with_config(args, opts):
     min_loss = 100000
     
     # Load model
-    if opts.pretrained:
-        print('Loading checkpoint', opts.pretrained)
-        chk_filename = os.path.join(opts.pretrained, opts.selection)
+    if opts.pretrained_backbone:
+        print('Checkpoint for backbone', opts.pretrained_backbone)
+        chk_backbone_filename = os.path.join(opts.pretrained_backbone, opts.selection)
     else:
-        chk_filename = ''
+        chk_backbone_filename = ''
 
     print(args.model)
-    if 'DHDSTformer_total' == args.model: model_pos = DHDSTformer_total(chk_filename=chk_filename, args=args)
-    elif 'DHDSTformer_total2' == args.model: model_pos = DHDSTformer_total2(chk_filename=chk_filename, args=args)
-    elif 'DHDSTformer_total3' == args.model: model_pos = DHDSTformer_total3(chk_filename=chk_filename, args=args)
+    if 'DHDSTformer_total' == args.model: model_pos = DHDSTformer_total(chk_filename=chk_backbone_filename, args=args)
+    elif 'DHDSTformer_total2' == args.model: model_pos = DHDSTformer_total2(chk_filename=chk_backbone_filename, args=args)
+    elif 'DHDSTformer_total3' == args.model: model_pos = DHDSTformer_total3(chk_filename=chk_backbone_filename, args=args)
     elif 'DHDSTformer_total4' == args.model: model_pos = DHDSTformer_total4(args=args)
     elif 'DHDSTformer_total5' == args.model: model_pos = DHDSTformer_total5(args=args)
-    elif 'DHDSTformer_total6' == args.model: model_pos = DHDSTformer_total6(chk_filename=chk_filename, args=args)
-    elif args.model == 'DHDSTformer_torso': model_pos = DHDSTformer_torso(chk_filename=chk_filename, args=args)
-    elif args.model == 'DHDSTformer_torso2': model_pos = DHDSTformer_torso2(chk_filename=chk_filename, args=args)
-    elif args.model == 'DHDSTformer_limb': model_pos = DHDSTformer_limb(chk_filename=chk_filename, args=args)
-    elif args.model == 'DHDSTformer_limb2': model_pos = DHDSTformer_limb2(chk_filename=chk_filename, args=args)
-    elif args.model == 'DHDSTformer_limb3': model_pos = DHDSTformer_limb3(chk_filename=chk_filename, args=args)
-    elif args.model == 'DHDSTformer_limb4': model_pos = DHDSTformer_limb4(chk_filename=chk_filename, args=args)
-    elif args.model == 'DHDSTformer_limb5': model_pos = DHDSTformer_limb5(chk_filename=chk_filename, args=args)
-    elif args.model == 'DHDSTformer_torso_limb': model_pos = DHDSTformer_torso_limb(chk_filename=chk_filename, args=args)
-    elif args.model == 'DHDST_onevec': model_pos = DHDSTformer_onevec(chk_filename=chk_filename, args=args)
-    elif args.model == 'DHDSTformer_right_arm': model_pos = DHDSTformer_right_arm(chk_filename=chk_filename, args=args)
-    elif args.model == 'DHDSTformer_right_arm2': model_pos = DHDSTformer_right_arm2(chk_filename=chk_filename, args=args)
-    elif args.model == 'DHDSTformer_right_arm3': model_pos = DHDSTformer_right_arm3(chk_filename=chk_filename, args=args)
+    elif 'DHDSTformer_total6' == args.model: model_pos = DHDSTformer_total6(chk_filename=chk_backbone_filename, args=args)
+    elif args.model == 'DHDSTformer_torso': model_pos = DHDSTformer_torso(chk_filename=chk_backbone_filename, args=args)
+    elif args.model == 'DHDSTformer_torso2': model_pos = DHDSTformer_torso2(chk_filename=chk_backbone_filename, args=args)
+    elif args.model == 'DHDSTformer_limb': model_pos = DHDSTformer_limb(chk_filename=chk_backbone_filename, args=args)
+    elif args.model == 'DHDSTformer_limb2': model_pos = DHDSTformer_limb2(chk_filename=chk_backbone_filename, args=args)
+    elif args.model == 'DHDSTformer_limb3': model_pos = DHDSTformer_limb3(chk_filename=chk_backbone_filename, args=args)
+    elif args.model == 'DHDSTformer_limb4': model_pos = DHDSTformer_limb4(chk_filename=chk_backbone_filename, args=args)
+    elif args.model == 'DHDSTformer_limb5': model_pos = DHDSTformer_limb5(chk_filename=chk_backbone_filename, args=args)
+    elif args.model == 'DHDSTformer_torso_limb': model_pos = DHDSTformer_torso_limb(chk_filename=chk_backbone_filename, args=args)
+    elif args.model == 'DHDST_onevec': model_pos = DHDSTformer_onevec(chk_filename=chk_backbone_filename, args=args)
+    elif args.model == 'DHDSTformer_right_arm': model_pos = DHDSTformer_right_arm(chk_filename=chk_backbone_filename, args=args)
+    elif args.model == 'DHDSTformer_right_arm2': model_pos = DHDSTformer_right_arm2(chk_filename=chk_backbone_filename, args=args)
+    elif args.model == 'DHDSTformer_right_arm3': model_pos = DHDSTformer_right_arm3(chk_filename=chk_backbone_filename, args=args)
     else: 
         model_pos = load_backbone(args)
-        if args.finetune:
-            if opts.resume:
-                chk_filename = opts.resume
-                print('Loading checkpoint', chk_filename)
-                checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
-                model_pos.load_state_dict(checkpoint['model_pos'], strict=False)
-            elif opts.pretrained:
-                chk_filename = os.path.join(opts.pretrained, opts.selection)
-                print('Loading checkpoint', chk_filename)
-                checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
-                model_pos.load_state_dict(checkpoint['model_pos'], strict=False)    
-        else:
-            chk_filename = os.path.join(opts.checkpoint, "latest_epoch.bin")
-            if os.path.exists(chk_filename):
-                opts.resume = chk_filename
-            if opts.resume:
-                chk_filename = opts.resume
-                print('Loading checkpoint', chk_filename)
-                checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
-                model_pos.load_state_dict(checkpoint['model_pos'], strict=False)
-    
+        
     if torch.cuda.is_available():
         model_pos = nn.DataParallel(model_pos)
         model_pos = model_pos.cuda()
+    
+    if args.finetune:
+        if opts.resume:
+            chk_filename = opts.resume
+            print('Loading checkpoint from resume', chk_filename)
+            checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
+            model_pos.load_state_dict(checkpoint['model_pos'], strict=True)
+        elif opts.pretrained:
+            chk_filename = os.path.join(opts.pretrained, opts.selection)
+            print('Loading checkpoint from pretrained', chk_filename)
+            checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
+            model_pos.load_state_dict(checkpoint['model_pos'], strict=True)    
+    else:
+        chk_filename = os.path.join(opts.checkpoint, "latest_epoch.bin")
+        if os.path.exists(chk_filename):
+            opts.resume = chk_filename
+        if opts.resume:
+            chk_filename = opts.resume
+            print('Loading checkpoint from resume', chk_filename)
+            checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
+            model_pos.load_state_dict(checkpoint['model_pos'], strict=True)
+    
     
     if opts.evaluate:
         chk_filename = os.path.join(opts.checkpoint, opts.evaluate)
         print('Loading checkpoint', chk_filename)
         checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
-        model_pos.load_state_dict(checkpoint['model_pos'], strict=False)
+        model_pos.load_state_dict(checkpoint['model_pos'], strict=True)
         
     if args.finetune_only_head:
         for name, parameter in model_pos.named_parameters():

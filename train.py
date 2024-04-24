@@ -35,7 +35,7 @@ def parse_args():
     parser.add_argument('-p', '--pretrained', default='checkpoint', type=str, metavar='PATH', help='pretrained checkpoint directory')
     parser.add_argument('-r', '--resume', default='', type=str, metavar='FILENAME', help='checkpoint to resume (file name)')
     parser.add_argument('-e', '--evaluate', default='', type=str, metavar='FILENAME', help='checkpoint to evaluate (file name)')
-    parser.add_argument('-ms', '--selection', default='latest_epoch.bin', type=str, metavar='FILENAME', help='checkpoint to finetune (file name)')
+    parser.add_argument('-ms', '--selection', default='best_epoch.bin', type=str, metavar='FILENAME', help='checkpoint to finetune (file name)')
     parser.add_argument('-sd', '--seed', default=0, type=int, help='random seed')
     opts = parser.parse_args()
     return opts
@@ -159,7 +159,8 @@ def evaluate(args, model_pos, test_loader, datareader):
         
 def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt):
     model_pos.train()
-    for idx, (batch_input, batch_gt) in tqdm(enumerate(train_loader)):    
+    pbar = tqdm(train_loader)
+    for (batch_input, batch_gt) in pbar:    
         batch_size = len(batch_input)        
         if torch.cuda.is_available():
             batch_input = batch_input.cuda()
@@ -209,6 +210,8 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
             losses['total'].update(loss_total.item(), batch_size)
         loss_total.backward()
         optimizer.step()
+
+        pbar.set_postfix({key: value.avg for key, value in losses.items()})
 
 def train_with_config(args, opts):
     print(args)
