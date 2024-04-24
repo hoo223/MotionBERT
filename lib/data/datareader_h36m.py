@@ -90,6 +90,8 @@ class DataReaderH36M(object):
         elif self.mode == 'cam_3d':
             train_labels = self.dt_dataset['train']['cam_3d'][::self.sample_stride, :, :3].astype(np.float32)
             test_labels = self.dt_dataset['test']['cam_3d'][::self.sample_stride, :, :3].astype(np.float32)
+        else:
+            raise ValueError("Invalid mode: {}".format(self.mode))
             
         return train_labels, test_labels
     def read_hw(self):
@@ -133,15 +135,20 @@ class DataReaderH36M(object):
         return train_data, test_data, train_labels, test_labels
     
     def denormalize(self, test_data):
-#       data: (N, n_frames, 51) or data: (N, n_frames, 17, 3)        
-        n_clips = test_data.shape[0]
-        test_hw = self.get_hw()
-        num_keypoints = test_data.shape[2]
-        data = test_data.reshape([n_clips, -1, num_keypoints, 3])
-        #assert len(data) == len(test_hw), "len(data): {}, len(test_hw): {}".format(len(data), len(test_hw))
-        # denormalize (x,y,z) coordiantes for results
-        for idx, item in enumerate(data):
-            res_w, res_h = test_hw[idx]
-            data[idx, :, :, :2] = (data[idx, :, :, :2] + np.array([1, res_h / res_w])) * res_w / 2
-            data[idx, :, :, 2:] = data[idx, :, :, 2:] * res_w / 2
-        return data # [n_clips, -1, 17, 3]
+        if self.mode == 'joint3d_image':
+    #       data: (N, n_frames, 51) or data: (N, n_frames, 17, 3)        
+            n_clips = test_data.shape[0]
+            test_hw = self.get_hw()
+            num_keypoints = test_data.shape[2]
+            data = test_data.reshape([n_clips, -1, num_keypoints, 3])
+            #assert len(data) == len(test_hw), "len(data): {}, len(test_hw): {}".format(len(data), len(test_hw))
+            # denormalize (x,y,z) coordiantes for results
+            for idx, item in enumerate(data):
+                res_w, res_h = test_hw[idx]
+                data[idx, :, :, :2] = (data[idx, :, :, :2] + np.array([1, res_h / res_w])) * res_w / 2
+                data[idx, :, :, 2:] = data[idx, :, :, 2:] * res_w / 2
+            return data # [n_clips, -1, 17, 3]
+        elif self.mode == 'world_3d' or self.mode == 'cam_3d':
+            return test_data
+        else:
+            raise ValueError("Invalid mode: {}".format(self.mode))

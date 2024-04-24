@@ -8,6 +8,7 @@ def parse_args():
     parser.add_argument("--config", type=str, default="configs/pretrain.yaml", help="Path to the config file.")
     parser.add_argument('-c', '--checkpoint', default='', type=str, metavar='PATH', help='checkpoint directory')
     parser.add_argument('-p', '--pretrained', default='', type=str, metavar='PATH', help='pretrained checkpoint directory')
+    parser.add_argument('-pb', '--pretrained_backbone', default='', type=str, metavar='PATH', help='pretrained backbone checkpoint directory')
     parser.add_argument('-r', '--resume', default='', type=str, metavar='FILENAME', help='checkpoint to resume (file name)')
     parser.add_argument('-e', '--evaluate', default='', type=str, metavar='FILENAME', help='checkpoint to evaluate (file name)')
     parser.add_argument('-ms', '--selection', default='best_epoch.bin', type=str, metavar='FILENAME', help='checkpoint to finetune (file name)')

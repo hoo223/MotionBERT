@@ -14,6 +14,8 @@ def preprocess_eval(args, batch_input, batch_gt):
     if args.canonical:
         batch_input = batch_input - batch_input[:, :, 0:1, :] # root-relative
         batch_gt = batch_gt - batch_gt[:, :, 0:1, :]
+    if args.rootrel:
+        batch_gt = batch_gt - batch_gt[:,:,0:1,:]
     if batch_gt.shape[2] == 17:
         batch_gt_torso = batch_gt[:, :, [0, 1, 4, 7, 8, 9, 10, 11, 14], :] 
         batch_gt_limb_pos = batch_gt[:, :, [2, 3, 5, 6, 12, 13, 15, 16], :]
@@ -201,6 +203,7 @@ def calculate_eval_metric(args, results_all, datareader):
             gt = gt[:, [0, 14, 15, 16], :]
         
         if not args.mpjpe_after_part:
+            # pred, gt: (243, 17, 3)
             err1_per_joint = mpjpe_for_each_joint(pred, gt) # (243, 17)
             try:
                 err2_per_joint = p_mpjpe_for_each_joint(pred, gt) # (243, 17)
