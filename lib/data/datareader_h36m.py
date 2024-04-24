@@ -135,8 +135,8 @@ class DataReaderH36M(object):
         return train_data, test_data, train_labels, test_labels
     
     def denormalize(self, test_data):
+        # test_data: (N, n_frames, 51) or test_data: (N, n_frames, 17, 3)        
         if self.mode == 'joint3d_image':
-    #       data: (N, n_frames, 51) or data: (N, n_frames, 17, 3)        
             n_clips = test_data.shape[0]
             test_hw = self.get_hw()
             num_keypoints = test_data.shape[2]
