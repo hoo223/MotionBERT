@@ -179,7 +179,7 @@ class DHDSTformer_total3(nn.Module):
         # inference
         rep = self.dstformer_backbone.module.get_representation(batch_input)
         torso_output  = self.torso_head(rep[:, :, [0, 1, 4, 7, 8, 9, 10, 11, 14], :])
-        rep_flatten   = self.flatten_head(rep.flatten(2)) # (N, F, 17*dim_re) -> (N, F, 3*dim_rep)
+        rep_flatten   = self.flatten_head(rep.flatten(2)) # (N, F, 17*dim_rep) -> (N, F, 3*dim_rep)
         right_arm_rep = self.right_arm_head(rep_flatten)  # (N, F, 3*dim_rep) -> (N, F, dim_rep)
         left_arm_rep  = self.left_arm_head(rep_flatten)   # (N, F, 3*dim_rep) -> (N, F, dim_rep)
         right_leg_rep = self.right_leg_head(rep_flatten)  # (N, F, 3*dim_rep) -> (N, F, dim_rep)
@@ -537,9 +537,9 @@ class DHDSTformer_total8(nn.Module):
             checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
             self.dstformer_backbone.load_state_dict(checkpoint['model_pos'], strict=True)
         
-        self.feature_head = nn.Linear(dim_out*3, 1024)
-        self.angle_head = linear_head(linear_size=1024, num_layers=num_layers_head, out_dim=4) # 4: yaw1, pitch1, yaw2, pitch2
-        self.length_head = linear_head(linear_size=1024, num_layers=num_layers_head, out_dim=2) # 2: length1, length2
+        #self.feature_head = nn.Linear(dim_out*3, 1024)
+        self.angle_head = nn.Linear(dim_out*3, 4)  # 4: yaw1, pitch1, yaw2, pitch2
+        self.length_head = nn.Linear(dim_out*3, 2) # 2: length1, length2
         
     def forward(self, batch_input, length_type='each', ref_frame=0):
         # batch_x: (B, F, 17, 2) 2d pose
@@ -553,10 +553,10 @@ class DHDSTformer_total8(nn.Module):
         # inference
         rep = self.dstformer_backbone.module.forward(batch_input)
         torso_output  = rep[:, :, [0, 1, 4, 7, 8, 9, 10, 11, 14], :] # (N, F, 9, 3)
-        right_arm_rep = self.feature_head(rep[:, :, [14, 15, 16], :].flatten(2)) # (N, F, 9) -> (N, F, dim_rep)
-        left_arm_rep  = self.feature_head(rep[:, :, [11, 12, 13], :].flatten(2))
-        right_leg_rep = self.feature_head(rep[:, :, [1, 2, 3], :].flatten(2))
-        left_leg_rep  = self.feature_head(rep[:, :, [4, 5, 6], :].flatten(2))
+        right_arm_rep = rep[:, :, [14, 15, 16], :].flatten(2) # (N, F, 9) -> (N, F, dim_rep)
+        left_arm_rep  = rep[:, :, [11, 12, 13], :].flatten(2)
+        right_leg_rep = rep[:, :, [1, 2, 3], :].flatten(2)
+        left_leg_rep  = rep[:, :, [4, 5, 6], :].flatten(2)
          
         right_arm_angle  = self.angle_head(right_arm_rep) # (N, F, dim_rep) -> (N, F, 4)
         left_arm_angle   = self.angle_head(left_arm_rep) # (N, F, dim_rep) -> (N, F, 4)
@@ -578,7 +578,7 @@ class DHDSTformer_total8(nn.Module):
         self.batch_dh_model.forward_batch_appendage()
         predicted_3d_pos = self.batch_dh_model.get_batch_pose_3d()
         
-        return self.batch_dh_model.get_batch_pose_3d()
+        return predicted_3d_pos
     
 class DHDSTformer_torso(nn.Module):
     def __init__(self, args, chk_filename='', dim_out=3, data_type=torch.float32):
