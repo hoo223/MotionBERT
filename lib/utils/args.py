@@ -78,6 +78,9 @@ def check_args(args, opts):
     
     try: test = args.finetune_only_head
     except: args.finetune_only_head = False
+    
+    try: test = args.freeze_backbone
+    except: args.freeze_backbone = False
 
     try: test = args.mpjpe_after_part
     except: args.mpjpe_after_part = False
@@ -87,5 +90,8 @@ def check_args(args, opts):
 
     try: test = args.denormalize_output
     except: args.denormalize_output = True
+    
+    try: test = args.print_summary_table
+    except: args.print_summary_table = True
 
     return args

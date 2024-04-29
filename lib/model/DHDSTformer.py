@@ -473,6 +473,11 @@ class DHDSTformer_total7(nn.Module):
         if chk_filename:
             checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
             self.dstformer_backbone.load_state_dict(checkpoint['model_pos'], strict=True)
+            
+        # freeze the backbone
+        if args.freeze_backbone:
+            for i, (name, param) in enumerate(self.dstformer_backbone.named_parameters()):
+                param.requires_grad = False
         
         self.feature_head = nn.Linear(dim_out*3, 1024)
         self.angle_head = linear_head(linear_size=1024, num_layers=num_layers_head, out_dim=4) # 4: yaw1, pitch1, yaw2, pitch2
@@ -536,6 +541,11 @@ class DHDSTformer_total8(nn.Module):
         if chk_filename:
             checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
             self.dstformer_backbone.load_state_dict(checkpoint['model_pos'], strict=True)
+            
+        # freeze the backbone
+        if args.freeze_backbone:
+            for i, (name, param) in enumerate(self.dstformer_backbone.named_parameters()):
+                param.requires_grad = False
         
         #self.feature_head = nn.Linear(dim_out*3, 1024)
         self.angle_head = nn.Linear(dim_out*3, 4)  # 4: yaw1, pitch1, yaw2, pitch2

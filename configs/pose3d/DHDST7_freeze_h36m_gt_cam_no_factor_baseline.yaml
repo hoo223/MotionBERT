@@ -1,0 +1,60 @@
+# General  
+train_2d: False
+no_eval: False
+finetune: True
+partial_train: null
+
+# Traning 
+epochs: 60
+checkpoint_frequency: 30
+batch_size: 16
+dropout: 0.0
+learning_rate: 0.0002
+weight_decay: 0.01
+lr_decay: 0.99
+freeze_backbone: True
+
+# Test
+part_list: ['whole'] 
+denormalize_output: False
+
+# Model
+model: DHDSTformer_total7
+maxlen: 243
+dim_feat: 512
+mlp_ratio: 2
+depth: 5
+dim_rep: 512
+num_heads: 8
+att_fuse: True
+
+# Data
+data_root: data/motion3d/MB3D_f243s81/
+subset_list: [H36M-GT-CAM_NO_FACTOR]
+dt_file: h36m_gt_no_factor.pkl
+clip_len: 243
+data_stride: 81
+rootrel: True
+sample_stride: 1
+num_joints: 17
+no_conf: False
+gt_2d: False
+gt_mode: 'cam_3d' # in m
+
+# DH
+train_length_type: each 
+test_length_type: each 
+length_frame: 0 
+pred_length: True
+
+# Loss
+lambda_3d_pos: 1.0
+lambda_3d_velocity: 20.0
+lambda_scale: 0.5
+
+# Augmentation
+synthetic: False
+flip: False
+mask_ratio: 0.
+mask_T_ratio: 0.
+noise: False

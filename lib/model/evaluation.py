@@ -217,7 +217,10 @@ def calculate_eval_metric(args, results_all, datareader):
             elif part == 'torso_full': joint_list = [pelvis, r_hip, l_hip, torso, neck, nose, head, l_shoulder, r_shoulder]
             elif part == 'torso_full_to_small': joint_list = [0, 1, 2, 4, 7, 8]
             elif part == 'arms': joint_list = [l_elbow, l_wrist, r_elbow, r_wrist]
-            elif part == 'right_arm': joint_list = [r_shoulder, r_elbow, r_wrist]
+            elif part == 'right_arm': joint_list = [r_elbow, r_wrist]
+            elif part == 'left_arm': joint_list = [l_elbow, l_wrist]
+            elif part == 'right_leg': joint_list = [r_knee, r_ankle]
+            elif part == 'left_leg': joint_list = [l_knee, l_ankle]
             elif part == 'legs': joint_list = [r_knee, r_ankle, l_knee, l_ankle]
             elif part == 'pelvis': joint_list = [pelvis]
             elif part == 'r_hip': joint_list = [r_hip]
@@ -273,7 +276,8 @@ def calculate_eval_metric(args, results_all, datareader):
             final_result_procrustes.append(np.mean(total_result_dict[part]['results_procrustes'][action]))
         summary_table.add_row(['P1 ({})'.format(part)] + final_result) # second row
         summary_table.add_row(['P2 ({})'.format(part)] + final_result_procrustes) # third row
-        print(summary_table)
+        if args.print_summary_table:
+            print(summary_table)
         
         # Total Error
         e1_part = np.mean(np.array(final_result))
