@@ -31,13 +31,13 @@ class DHDSTformer_total(nn.Module):
         
         self.torso_head = nn.Linear(args.dim_rep, dim_out)
         self.right_arm_head1 = nn.Linear(args.dim_rep*3, args.dim_rep)
-        self.right_arm_head2 = nn.Linear(args.dim_rep, 6) # 6: yaw1, pitch1, yaw2, pitch2, length1, length2
+        self.right_arm_head2 = nn.Linear(args.dim_rep, 6) # 6: azim1, elev1, azim2, elev2, length1, length2
         self.left_arm_head1  = nn.Linear(args.dim_rep*3, args.dim_rep)
-        self.left_arm_head2  = nn.Linear(args.dim_rep, 6) # 6: yaw1, pitch1, yaw2, pitch2, length1, length2
+        self.left_arm_head2  = nn.Linear(args.dim_rep, 6) # 6: azim1, elev1, azim2, elev2, length1, length2
         self.right_leg_head1 = nn.Linear(args.dim_rep*3, args.dim_rep)
-        self.right_leg_head2 = nn.Linear(args.dim_rep, 6) # 6: yaw1, pitch1, yaw2, pitch2, length1, length2
+        self.right_leg_head2 = nn.Linear(args.dim_rep, 6) # 6: azim1, elev1, azim2, elev2, length1, length2
         self.left_leg_head1  = nn.Linear(args.dim_rep*3, args.dim_rep)
-        self.left_leg_head2  = nn.Linear(args.dim_rep, 6) # 6: yaw1, pitch1, yaw2, pitch2, length1, length2
+        self.left_leg_head2  = nn.Linear(args.dim_rep, 6) # 6: azim1, elev1, azim2, elev2, length1, length2
         
     def forward(self, batch_input, length_type='each', ref_frame=0):
         # batch_x: (B, F, 17, 2) 2d pose
@@ -83,16 +83,16 @@ class DHDSTformer_total2(nn.Module):
         
         self.torso_head = nn.Linear(args.dim_rep, dim_out)
         self.right_arm_head = nn.Linear(args.dim_rep*3, args.dim_rep)
-        self.right_arm_head_angle = nn.Linear(args.dim_rep, 4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.right_arm_head_angle = nn.Linear(args.dim_rep, 4) # 4: azim1, elev1, azim2, elev2
         self.right_arm_head_length = nn.Linear(args.dim_rep, 2) # 4: length1, length2
         self.left_arm_head  = nn.Linear(args.dim_rep*3, args.dim_rep)
-        self.left_arm_head_angle = nn.Linear(args.dim_rep, 4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.left_arm_head_angle = nn.Linear(args.dim_rep, 4) # 4: azim1, elev1, azim2, elev2
         self.left_arm_head_length = nn.Linear(args.dim_rep, 2) # 4: length1, length2
         self.right_leg_head = nn.Linear(args.dim_rep*3, args.dim_rep)
-        self.right_leg_head_angle = nn.Linear(args.dim_rep, 4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.right_leg_head_angle = nn.Linear(args.dim_rep, 4) # 4: azim1, elev1, azim2, elev2
         self.right_leg_head_length = nn.Linear(args.dim_rep, 2) # 4: length1, length2
         self.left_leg_head  = nn.Linear(args.dim_rep*3, args.dim_rep)
-        self.left_leg_head_angle = nn.Linear(args.dim_rep, 4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.left_leg_head_angle = nn.Linear(args.dim_rep, 4) # 4: azim1, elev1, azim2, elev2
         self.left_leg_head_length = nn.Linear(args.dim_rep, 2) # 4: length1, length2
          
     def forward(self, batch_input, length_type='each', ref_frame=0):
@@ -155,16 +155,16 @@ class DHDSTformer_total3(nn.Module):
         self.torso_head            = nn.Linear(args.dim_rep, dim_out)
         self.flatten_head          = nn.Linear(args.dim_rep*num_keypoints, args.dim_rep*3)
         self.right_arm_head        = nn.Linear(args.dim_rep*3, args.dim_rep)
-        self.right_arm_head_angle  = nn.Linear(args.dim_rep, 4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.right_arm_head_angle  = nn.Linear(args.dim_rep, 4) # 4: azim1, elev1, azim2, elev2
         self.right_arm_head_length = nn.Linear(args.dim_rep, 2) # 4: length1, length2
         self.left_arm_head         = nn.Linear(args.dim_rep*3, args.dim_rep)
-        self.left_arm_head_angle   = nn.Linear(args.dim_rep, 4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.left_arm_head_angle   = nn.Linear(args.dim_rep, 4) # 4: azim1, elev1, azim2, elev2
         self.left_arm_head_length  = nn.Linear(args.dim_rep, 2) # 4: length1, length2
         self.right_leg_head        = nn.Linear(args.dim_rep*3, args.dim_rep)
-        self.right_leg_head_angle  = nn.Linear(args.dim_rep, 4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.right_leg_head_angle  = nn.Linear(args.dim_rep, 4) # 4: azim1, elev1, azim2, elev2
         self.right_leg_head_length = nn.Linear(args.dim_rep, 2) # 4: length1, length2
         self.left_leg_head         = nn.Linear(args.dim_rep*3, args.dim_rep)
-        self.left_leg_head_angle   = nn.Linear(args.dim_rep, 4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.left_leg_head_angle   = nn.Linear(args.dim_rep, 4) # 4: azim1, elev1, azim2, elev2
         self.left_leg_head_length  = nn.Linear(args.dim_rep, 2) # 4: length1, length2
          
     def forward(self, batch_input, length_type='each', ref_frame=0):
@@ -225,7 +225,7 @@ class DHDSTformer_total4(nn.Module):
         self.dstformer_backbone = load_backbone(args)
         self.dstformer_backbone = nn.DataParallel(self.dstformer_backbone)
         self.torso_head = nn.Linear(args.dim_rep, 3)
-        self.angle_head = nn.Linear(args.dim_rep, 4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.angle_head = nn.Linear(args.dim_rep, 4) # 4: azim1, elev1, azim2, elev2
         self.length_head = nn.Linear(args.dim_rep, 2) # 4: length1, length2
 
         # batch_dh_model
@@ -322,7 +322,7 @@ class DHDSTformer_total5(nn.Module):
         self.dstformer_backbone = load_backbone(args)
         self.dstformer_backbone = nn.DataParallel(self.dstformer_backbone)
         self.torso_head = linear_head(linear_size=args.dim_rep, out_dim=3)
-        self.angle_head = linear_head(linear_size=args.dim_rep, out_dim=4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.angle_head = linear_head(linear_size=args.dim_rep, out_dim=4) # 4: azim1, elev1, azim2, elev2
         self.length_head = linear_head(linear_size=args.dim_rep, out_dim=2) # 4: length1, length2
 
         # batch_dh_model
@@ -406,16 +406,16 @@ class DHDSTformer_total6(nn.Module):
         
         #self.torso_head = nn.Linear(args.dim_rep, dim_out)
         self.right_arm_head = nn.Linear(dim_out*3, args.dim_rep)
-        self.right_arm_head_angle = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.right_arm_head_angle = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=4) # 4: azim1, elev1, azim2, elev2
         self.right_arm_head_length = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=2) # 2: length1, length2
         self.left_arm_head  = nn.Linear(dim_out*3, args.dim_rep)
-        self.left_arm_head_angle = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.left_arm_head_angle = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=4) # 4: azim1, elev1, azim2, elev2
         self.left_arm_head_length = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=2) # 2: length1, length2
         self.right_leg_head = nn.Linear(dim_out*3, args.dim_rep)
-        self.right_leg_head_angle = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.right_leg_head_angle = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=4) # 4: azim1, elev1, azim2, elev2
         self.right_leg_head_length = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=2) # 2: length1, length2
         self.left_leg_head  = nn.Linear(dim_out*3, args.dim_rep)
-        self.left_leg_head_angle = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.left_leg_head_angle = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=4) # 4: azim1, elev1, azim2, elev2
         self.left_leg_head_length = linear_head(linear_size=args.dim_rep, num_layers=num_layers_head, out_dim=2) # 2: length1, length2
          
     def forward(self, batch_input, length_type='each', ref_frame=0):
@@ -480,7 +480,7 @@ class DHDSTformer_total7(nn.Module):
                 param.requires_grad = False
         
         self.feature_head = nn.Linear(dim_out*3, 1024)
-        self.angle_head = linear_head(linear_size=1024, num_layers=num_layers_head, out_dim=4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.angle_head = linear_head(linear_size=1024, num_layers=num_layers_head, out_dim=4) # 4: azim1, elev1, azim2, elev2
         self.length_head = linear_head(linear_size=1024, num_layers=num_layers_head, out_dim=2) # 2: length1, length2
         
     def forward(self, batch_input, length_type='each', ref_frame=0):
@@ -548,9 +548,18 @@ class DHDSTformer_total8(nn.Module):
                 param.requires_grad = False
         
         #self.feature_head = nn.Linear(dim_out*3, 1024)
-        self.angle_head = nn.Linear(dim_out*3, 4)  # 4: yaw1, pitch1, yaw2, pitch2
+        self.angle_head = nn.Linear(dim_out*3, 4)  # 4: azim1, elev1, azim2, elev2
         self.length_head = nn.Linear(dim_out*3, 2) # 2: length1, length2
-        
+        self.angle_output = None
+        self.length_output = None
+
+    def set_dh_output(self, angle_output, length_output):
+        self.angle_output = angle_output
+        self.length_output = length_output
+
+    def get_dh_output(self):
+        return self.angle_output, self.length_output
+
     def forward(self, batch_input, length_type='each', ref_frame=0):
         # batch_x: (B, F, 17, 2) 2d pose
         # rep: (B, F, 17, dim_rep) hidden representation
@@ -576,9 +585,10 @@ class DHDSTformer_total8(nn.Module):
         left_arm_length  = F.adaptive_avg_pool2d(self.length_head(left_arm_rep), (1, 2)).permute(0, 2, 1) # (N, F, dim_rep) -> (N, 2, 1)
         right_leg_length = F.adaptive_avg_pool2d(self.length_head(right_leg_rep), (1, 2)).permute(0, 2, 1) # (N, F, dim_rep) -> (N, 2, 1)
         left_leg_length  = F.adaptive_avg_pool2d(self.length_head(left_leg_rep), (1, 2)).permute(0, 2, 1) # (N, F, dim_rep) -> (N, 2, 1)
-        angle_output = torch.cat([right_arm_angle, left_arm_angle, right_leg_angle, left_leg_angle], dim=-1) # (B, F, 16)
-        length_output = torch.cat([right_arm_length, left_arm_length, right_leg_length, left_leg_length], dim=-1) # (B, 2, 4)
-        
+        angle_output = torch.cat([right_arm_angle, left_arm_angle, right_leg_angle, left_leg_angle], dim=-1).clone() # (B, F, 16)
+        length_output = torch.cat([right_arm_length, left_arm_length, right_leg_length, left_leg_length], dim=-1).clone() # (B, 2, 4)
+        self.set_dh_output(angle_output, length_output)
+
         # update dh model
         self.batch_dh_model.set_batch_torso(torso_output)
         self.batch_dh_model.set_batch_torso_frame()
@@ -765,16 +775,16 @@ class DHDSTformer_limb(nn.Module):
             self.dstformer_backbone.load_state_dict(checkpoint['model_pos'], strict=True)
         
         self.right_arm_head = nn.Linear(args.dim_rep*3, args.dim_rep)
-        self.right_arm_head_angle = nn.Linear(args.dim_rep, 4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.right_arm_head_angle = nn.Linear(args.dim_rep, 4) # 4: azim1, elev1, azim2, elev2
         self.right_arm_head_length = nn.Linear(args.dim_rep, 2) # 4: length1, length2
         self.left_arm_head  = nn.Linear(args.dim_rep*3, args.dim_rep)
-        self.left_arm_head_angle = nn.Linear(args.dim_rep, 4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.left_arm_head_angle = nn.Linear(args.dim_rep, 4) # 4: azim1, elev1, azim2, elev2
         self.left_arm_head_length = nn.Linear(args.dim_rep, 2) # 4: length1, length2
         self.right_leg_head = nn.Linear(args.dim_rep*3, args.dim_rep)
-        self.right_leg_head_angle = nn.Linear(args.dim_rep, 4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.right_leg_head_angle = nn.Linear(args.dim_rep, 4) # 4: azim1, elev1, azim2, elev2
         self.right_leg_head_length = nn.Linear(args.dim_rep, 2) # 4: length1, length2
         self.left_leg_head  = nn.Linear(args.dim_rep*3, args.dim_rep)
-        self.left_leg_head_angle = nn.Linear(args.dim_rep, 4) # 4: yaw1, pitch1, yaw2, pitch2
+        self.left_leg_head_angle = nn.Linear(args.dim_rep, 4) # 4: azim1, elev1, azim2, elev2
         self.left_leg_head_length = nn.Linear(args.dim_rep, 2) # 4: length1, length2
         
     def forward(self, batch_input, batch_torso):
@@ -1210,13 +1220,13 @@ class DHDSTformer_right_arm3(nn.Module):
         
 #         self.torso_head = nn.Linear(args.dim_rep, dim_out)
 #         self.right_arm_head1 = nn.Linear(args.dim_rep*3, args.dim_rep)
-#         self.right_arm_head2 = nn.Linear(args.dim_rep, 6) # 4: yaw1, pitch1, yaw2, pitch2, length1, length2
+#         self.right_arm_head2 = nn.Linear(args.dim_rep, 6) # 4: azim1, elev1, azim2, elev2, length1, length2
 #         self.left_arm_head1  = nn.Linear(args.dim_rep*3, args.dim_rep)
-#         self.left_arm_head2  = nn.Linear(args.dim_rep, 6) # 4: yaw1, pitch1, yaw2, pitch2, length1, length2
+#         self.left_arm_head2  = nn.Linear(args.dim_rep, 6) # 4: azim1, elev1, azim2, elev2, length1, length2
 #         self.right_leg_head1 = nn.Linear(args.dim_rep*3, args.dim_rep)
-#         self.right_leg_head2 = nn.Linear(args.dim_rep, 6) # 4: yaw1, pitch1, yaw2, pitch2, length1, length2
+#         self.right_leg_head2 = nn.Linear(args.dim_rep, 6) # 4: azim1, elev1, azim2, elev2, length1, length2
 #         self.left_leg_head1  = nn.Linear(args.dim_rep*3, args.dim_rep)
-#         self.left_leg_head2  = nn.Linear(args.dim_rep, 6) # 4: yaw1, pitch1, yaw2, pitch2, length1, length2
+#         self.left_leg_head2  = nn.Linear(args.dim_rep, 6) # 4: azim1, elev1, azim2, elev2, length1, length2
         
 #         self.batch_zero = torch.zeros(self.batch_size, self.num_frames, dtype=self.data_type).cuda()
         

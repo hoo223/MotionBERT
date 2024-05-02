@@ -9,6 +9,7 @@ from lib.utils.utils_data import flip_data
 def preprocess_eval(args, batch_input, batch_gt):
     if torch.cuda.is_available():
         batch_input = batch_input.cuda()
+        batch_gt = batch_gt.cuda()
     if args.no_conf:
         batch_input = batch_input[:, :, :, :2]
     if args.canonical:
