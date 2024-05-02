@@ -61,9 +61,9 @@ class DataReaderH36M(object):
         return trainset, testset
 
     def read_3d(self):
-        if self.mode == 'joint3d_image':
-            train_labels = self.dt_dataset['train']['joint3d_image'][::self.sample_stride, :, :3].astype(np.float32)  # [N, 17, 3]
-            test_labels = self.dt_dataset['test']['joint3d_image'][::self.sample_stride, :, :3].astype(np.float32)    # [N, 17, 3]
+        train_labels = self.dt_dataset['train'][self.mode][::self.sample_stride, :, :3].astype(np.float32)  # [N, 17, 3]
+        test_labels = self.dt_dataset['test'][self.mode][::self.sample_stride, :, :3].astype(np.float32)    # [N, 17, 3]
+        if self.mode == 'joint3d_image': # normalize to [-1, 1]
             # map to [-1, 1]
             for idx, camera_name in enumerate(self.dt_dataset['train']['camera_name']):
                 if camera_name == '54138969' or camera_name == '60457274':
@@ -84,16 +84,17 @@ class DataReaderH36M(object):
                     assert 0, '%d data item has an invalid camera name' % idx
                 test_labels[idx, :, :2] = test_labels[idx, :, :2] / res_w * 2 - [1, res_h / res_w]
                 test_labels[idx, :, 2:] = test_labels[idx, :, 2:] / res_w * 2
-        elif self.mode == 'world_3d':    
-            train_labels = self.dt_dataset['train']['world_3d'][::self.sample_stride, :, :3].astype(np.float32)
-            test_labels = self.dt_dataset['test']['world_3d'][::self.sample_stride, :, :3].astype(np.float32)
-        elif self.mode == 'cam_3d':
-            train_labels = self.dt_dataset['train']['cam_3d'][::self.sample_stride, :, :3].astype(np.float32)
-            test_labels = self.dt_dataset['test']['cam_3d'][::self.sample_stride, :, :3].astype(np.float32)
-        else:
-            raise ValueError("Invalid mode: {}".format(self.mode))
+        # elif self.mode == 'world_3d':    
+        #     train_labels = self.dt_dataset['train']['world_3d'][::self.sample_stride, :, :3].astype(np.float32)
+        #     test_labels = self.dt_dataset['test']['world_3d'][::self.sample_stride, :, :3].astype(np.float32)
+        # elif self.mode == 'cam_3d':
+        #     train_labels = self.dt_dataset['train']['cam_3d'][::self.sample_stride, :, :3].astype(np.float32)
+        #     test_labels = self.dt_dataset['test']['cam_3d'][::self.sample_stride, :, :3].astype(np.float32)
+        # else:
+        #     raise ValueError("Invalid mode: {}".format(self.mode))
             
         return train_labels, test_labels
+    
     def read_hw(self):
         if self.test_hw is not None:
             return self.test_hw

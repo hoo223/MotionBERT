@@ -226,6 +226,7 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
             pass
 
 def train_with_config(args, opts):
+    print(1)
     if not opts.evaluate:
         try:
             os.makedirs(opts.checkpoint)
@@ -265,9 +266,14 @@ def train_with_config(args, opts):
         instav = InstaVDataset2D()
         instav_loader_2d = DataLoader(instav, **trainloader_params)
     for subset in args.subset_list:
-        if 'H36M' in subset:  datareader = DataReaderH36M(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file, mode=args.gt_mode)
+        print(subset)
+        if 'H36M' in subset: 
+            print('H36M')
+            datareader = DataReaderH36M(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file, mode=args.gt_mode)
         elif 'AIHUB' in subset: datareader = DataReaderAIHUB(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
-        elif 'FIT3D' in subset: datareader = DataReaderFIT3D(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
+        elif 'FIT3D' in subset: 
+            print('FIT3D')
+            datareader = DataReaderFIT3D(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
         elif 'KOOKMIN' in subset: datareader = DataReaderKOOKMIN(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
     min_loss = 100000
     
@@ -492,7 +498,10 @@ def train_with_config(args, opts):
         if 'DHDST_onevec' in args.model:
             evaluate_onevec(args, model_pos, test_loader, datareader)
         else:
-            print(f"Evalute model on epoch {checkpoint['epoch']} (epoch starts from 1)")
+            try:
+                print(f"Evalute model on epoch {checkpoint['epoch']} (epoch starts from 1)")
+            except:
+                print('No epoch information in the checkpoint')
             e1, e2, results_all, total_result_dict = evaluate(args, model_pos, test_loader, datareader)
 
 if __name__ == "__main__":

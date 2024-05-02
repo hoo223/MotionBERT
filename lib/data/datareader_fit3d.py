@@ -9,7 +9,7 @@ from lib.utils.utils_data import split_clips
 random.seed(0)
     
 class DataReaderFIT3D(object):
-    def __init__(self, n_frames, sample_stride, data_stride_train, data_stride_test, read_confidence=True, dt_root = 'data/motion3d', dt_file = 'fit3d.pkl'):
+    def __init__(self, n_frames, sample_stride, data_stride_train, data_stride_test, read_confidence=True, dt_root = 'data/motion3d', dt_file = 'fit3d.pkl', mode='joint3d_image'):
         self.gt_trainset = None
         self.gt_testset = None
         self.split_id_train = None
@@ -21,6 +21,7 @@ class DataReaderFIT3D(object):
         self.data_stride_train = data_stride_train
         self.data_stride_test = data_stride_test
         self.read_confidence = read_confidence
+        self.mode = mode
         
     def read_2d(self):
         #print(self.dt_dataset['train']['joint_2d'].shape, self.dt_dataset['test']['joint_2d'].shape)
@@ -61,31 +62,32 @@ class DataReaderFIT3D(object):
         return trainset, testset
 
     def read_3d(self):
-        train_labels = self.dt_dataset['train']['joint3d_image'][::self.sample_stride, :, :3].astype(np.float32)  # [N, 17, 3]
-        test_labels = self.dt_dataset['test']['joint3d_image'][::self.sample_stride, :, :3].astype(np.float32)    # [N, 17, 3]
-        # map to [-1, 1]
-        for idx, camera_name in enumerate(self.dt_dataset['train']['camera_name']):
-            # if camera_name == '54138969' or camera_name == '60457274':
-            #     res_w, res_h = 1000, 1002
-            # elif camera_name == '55011271' or camera_name == '58860488':
-            #     res_w, res_h = 1000, 1000
-            # else:
-            #     assert 0, '%d data item has an invalid camera name' % idx
-            res_w, res_h = 1000, 1000
-            train_labels[idx, :, :2] = train_labels[idx, :, :2] / res_w * 2 - [1, res_h / res_w]
-            train_labels[idx, :, 2:] = train_labels[idx, :, 2:] / res_w * 2
-            
-        for idx, camera_name in enumerate(self.dt_dataset['test']['camera_name']):
-            # if camera_name == '54138969' or camera_name == '60457274':
-            #     res_w, res_h = 1000, 1002
-            # elif camera_name == '55011271' or camera_name == '58860488':
-            #     res_w, res_h = 1000, 1000
-            # else:
-            #     assert 0, '%d data item has an invalid camera name' % idx
-            res_w, res_h = 1000, 1000
-            test_labels[idx, :, :2] = test_labels[idx, :, :2] / res_w * 2 - [1, res_h / res_w]
-            test_labels[idx, :, 2:] = test_labels[idx, :, 2:] / res_w * 2
-            
+        train_labels = self.dt_dataset['train'][self.mode][::self.sample_stride, :, :3].astype(np.float32)  # [N, 17, 3]
+        test_labels = self.dt_dataset['test'][self.mode][::self.sample_stride, :, :3].astype(np.float32)    # [N, 17, 3]
+        if self.mode == 'joint3d_image': # normalize to [-1, 1]
+            # map to [-1, 1]
+            for idx, camera_name in enumerate(self.dt_dataset['train']['camera_name']):
+                # if camera_name == '54138969' or camera_name == '60457274':
+                #     res_w, res_h = 1000, 1002
+                # elif camera_name == '55011271' or camera_name == '58860488':
+                #     res_w, res_h = 1000, 1000
+                # else:
+                #     assert 0, '%d data item has an invalid camera name' % idx
+                res_w, res_h = 1000, 1000
+                train_labels[idx, :, :2] = train_labels[idx, :, :2] / res_w * 2 - [1, res_h / res_w]
+                train_labels[idx, :, 2:] = train_labels[idx, :, 2:] / res_w * 2
+                
+            for idx, camera_name in enumerate(self.dt_dataset['test']['camera_name']):
+                # if camera_name == '54138969' or camera_name == '60457274':
+                #     res_w, res_h = 1000, 1002
+                # elif camera_name == '55011271' or camera_name == '58860488':
+                #     res_w, res_h = 1000, 1000
+                # else:
+                #     assert 0, '%d data item has an invalid camera name' % idx
+                res_w, res_h = 1000, 1000
+                test_labels[idx, :, :2] = test_labels[idx, :, :2] / res_w * 2 - [1, res_h / res_w]
+                test_labels[idx, :, 2:] = test_labels[idx, :, 2:] / res_w * 2
+                
         return train_labels, test_labels
     def read_hw(self):
         if self.test_hw is not None:
