@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 from lib.utils.tools import *
 from lib.utils.learning import *
 from lib.model.loss import *
-from lib.data.dataset_action import Fit3DAction
+from lib.data.dataset_action import KookminAction
 from lib.model.model_action import ActionNet
 
 os.environ["NCCL_P2P_DISABLE"]= '1'
@@ -49,7 +49,7 @@ def validate(test_loader, model, criterion):
     top5 = AverageMeter()
     with torch.no_grad():
         end = time.time()
-        for idx, (batch_input, batch_gt) in tqdm(enumerate(test_loader)):
+        for idx, (batch_input, batch_gt, batch_split) in tqdm(enumerate(test_loader)):
             batch_size = len(batch_input)    
             if torch.cuda.is_available():
                 batch_gt = batch_gt.cuda()
@@ -76,6 +76,62 @@ def validate(test_loader, model, criterion):
                        idx, len(test_loader), batch_time=batch_time,
                        loss=losses, top1=top1, top5=top5))
     return losses.avg, top1.avg, top5.avg
+
+def validate_analysis(test_loader, model, criterion):
+    model.eval()
+    batch_time = AverageMeter()
+    losses = AverageMeter()
+    top1 = AverageMeter()
+    top5 = AverageMeter()
+    
+    total_gt = []
+    total_output = []
+    total_split = []
+    with torch.no_grad():
+        end = time.time()
+        for idx, (batch_input, batch_gt, batch_split) in tqdm(enumerate(test_loader)):
+            batch_size = len(batch_input)    
+            if torch.cuda.is_available():
+                batch_gt = batch_gt.cuda()
+                batch_input = batch_input.cuda()
+            output = model(batch_input)    # (B, num_classes)
+            loss = criterion(output, batch_gt)
+
+            # update metric
+            losses.update(loss.item(), batch_size)
+            acc1, acc5 = accuracy(output, batch_gt, topk=(1, 5))
+            top1.update(acc1[0], batch_size)
+            top5.update(acc5[0], batch_size)
+            
+            #print(output.shape, len(batch_split))
+            #print(acc1)
+
+            # measure elapsed time
+            batch_time.update(time.time() - end)
+            end = time.time()
+
+            if (idx+1) % opts.print_freq == 0:
+                print('Test: [{0}/{1}]\t'
+                      'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                      'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                      'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                      'Acc@5 {top5.val:.3f} ({top5.avg:.3f})\t'.format(
+                       idx, len(test_loader), batch_time=batch_time,
+                       loss=losses, top1=top1, top5=top5))
+            
+            total_gt.append(batch_gt.cpu().detach().numpy())
+            total_output.append(output.cpu().detach().numpy())
+            total_split += batch_split
+            # if idx > 3:
+            #     break
+    total_gt = np.array(total_gt).reshape(-1)
+    total_output = np.array(total_output).reshape(-1, 7)
+    total_split = np.array(total_split)
+    print(total_gt.shape, total_output.shape, total_split.shape)
+    total_dict = {'gt': total_gt, 'output': total_output, 'split': total_split}
+    with open('action_recognition_result.pkl', 'wb') as f:
+        pickle.dump(total_dict, f, pickle.HIGHEST_PROTOCOL)
+    #return losses.avg, top1.avg, top5.avg
 
 
 def train_with_config(args, opts):
@@ -126,8 +182,8 @@ def train_with_config(args, opts):
           'persistent_workers': True
     }
     data_path = 'data/action/%s.pkl' % args.dataset
-    kookmin_train = Fit3DAction(data_path=data_path, data_split='train', n_frames=args.clip_len, random_move=args.random_move, scale_range=args.scale_range_train)
-    kookmin_val = Fit3DAction(data_path=data_path, data_split='test', n_frames=args.clip_len, random_move=False, scale_range=args.scale_range_test)
+    kookmin_train = KookminAction(data_path=data_path, data_split='train', n_frames=args.clip_len, random_move=args.random_move, scale_range=args.scale_range_train)
+    kookmin_val = KookminAction(data_path=data_path, data_split='test', n_frames=args.clip_len, random_move=False, scale_range=args.scale_range_test)
 
     train_loader = DataLoader(kookmin_train, **trainloader_params)
     test_loader = DataLoader(kookmin_val, **testloader_params)
@@ -172,7 +228,7 @@ def train_with_config(args, opts):
             model.train()
             end = time.time()
             iters = len(train_loader)
-            for idx, (batch_input, batch_gt) in tqdm(enumerate(train_loader)):    # (N, 2, T, 17, 3)
+            for idx, (batch_input, batch_gt, batch_split) in tqdm(enumerate(train_loader)):    # (N, 2, T, 17, 3)
                 data_time.update(time.time() - end)
                 batch_size = len(batch_input)
                 if batch_size == 1:
@@ -244,7 +300,8 @@ def train_with_config(args, opts):
                 }, best_chk_path)
 
     if opts.evaluate:
-        test_loss, test_top1, test_top5 = validate(test_loader, model, criterion)
+        #test_loss, test_top1, test_top5 = validate(test_loader, model, criterion)
+        validate_analysis(test_loader, model, criterion)
         print('Loss {loss:.4f} \t'
               'Acc@1 {top1:.3f} \t'
               'Acc@5 {top5:.3f} \t'.format(loss=test_loss, top1=test_top1, top5=test_top5))

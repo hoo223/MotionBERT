@@ -220,3 +220,18 @@ class Fit3DAction(ActionDataset):
         else:
             result = motion
         return result.astype(np.float32), label
+    
+class KookminAction(ActionDataset):
+    def __init__(self, data_path, data_split, n_frames=243, random_move=True, scale_range=[1,1]):
+        super(KookminAction, self).__init__(data_path, data_split, n_frames, random_move, scale_range)
+        
+    def __getitem__(self, idx):
+        'Generates one sample of data'
+        motion, label, split = self.motions[idx], self.labels[idx], self.split[idx] # (M,T,J,C)
+        if self.random_move:
+            motion = random_move(motion)
+        if self.scale_range:
+            result = crop_scale(motion, scale_range=self.scale_range)
+        else:
+            result = motion
+        return result.astype(np.float32), label, split
