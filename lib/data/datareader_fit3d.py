@@ -16,35 +16,26 @@ class DataReaderFIT3D(object):
         self.split_id_test = None
         self.test_hw = None
         self.dt_dataset = read_pkl('%s/%s' % (dt_root, dt_file))
+        self.mode = mode
+        if mode == 'cam_3d':
+            self.dt_dataset['train'][mode] /= 1000
+            self.dt_dataset['test'][mode] /= 1000
         self.n_frames = n_frames
         self.sample_stride = sample_stride
         self.data_stride_train = data_stride_train
         self.data_stride_test = data_stride_test
         self.read_confidence = read_confidence
-        self.mode = mode
+        self.res_w, self.res_h = 900, 900
         
     def read_2d(self):
         #print(self.dt_dataset['train']['joint_2d'].shape, self.dt_dataset['test']['joint_2d'].shape)
         trainset = self.dt_dataset['train']['joint_2d'][::self.sample_stride, :, :2].astype(np.float32)  # [N, 17, 2]
         testset = self.dt_dataset['test']['joint_2d'][::self.sample_stride, :, :2].astype(np.float32)  # [N, 17, 2]
         # map to [-1, 1]
+        res_w, res_h = self.res_w, self.res_h
         for idx, camera_name in enumerate(self.dt_dataset['train']['camera_name']):
-            # if camera_name == '54138969' or camera_name == '60457274':
-            #     res_w, res_h = 1000, 1002
-            # elif camera_name == '55011271' or camera_name == '58860488':
-            #     res_w, res_h = 1000, 1000
-            # else:
-            #     assert 0, '%d data item has an invalid camera name' % idx
-            res_w, res_h = 1000, 1000
             trainset[idx, :, :] = trainset[idx, :, :] / res_w * 2 - [1, res_h / res_w]
         for idx, camera_name in enumerate(self.dt_dataset['test']['camera_name']):
-            # if camera_name == '54138969' or camera_name == '60457274':
-                # res_w, res_h = 1000, 1002
-            # elif camera_name == '55011271' or camera_name == '58860488':
-                # res_w, res_h = 1000, 1000
-            # else:
-                # assert 0, '%d data item has an invalid camera name' % idx
-            res_w, res_h = 1000, 1000
             testset[idx, :, :] = testset[idx, :, :] / res_w * 2 - [1, res_h / res_w]
         if self.read_confidence:
             if 'confidence' in self.dt_dataset['train'].keys():
@@ -66,28 +57,14 @@ class DataReaderFIT3D(object):
         test_labels = self.dt_dataset['test'][self.mode][::self.sample_stride, :, :3].astype(np.float32)    # [N, 17, 3]
         if self.mode == 'joint3d_image': # normalize to [-1, 1]
             # map to [-1, 1]
+            res_w, res_h = self.res_w, self.res_h
             for idx, camera_name in enumerate(self.dt_dataset['train']['camera_name']):
-                # if camera_name == '54138969' or camera_name == '60457274':
-                #     res_w, res_h = 1000, 1002
-                # elif camera_name == '55011271' or camera_name == '58860488':
-                #     res_w, res_h = 1000, 1000
-                # else:
-                #     assert 0, '%d data item has an invalid camera name' % idx
-                res_w, res_h = 1000, 1000
                 train_labels[idx, :, :2] = train_labels[idx, :, :2] / res_w * 2 - [1, res_h / res_w]
                 train_labels[idx, :, 2:] = train_labels[idx, :, 2:] / res_w * 2
                 
             for idx, camera_name in enumerate(self.dt_dataset['test']['camera_name']):
-                # if camera_name == '54138969' or camera_name == '60457274':
-                #     res_w, res_h = 1000, 1002
-                # elif camera_name == '55011271' or camera_name == '58860488':
-                #     res_w, res_h = 1000, 1000
-                # else:
-                #     assert 0, '%d data item has an invalid camera name' % idx
-                res_w, res_h = 1000, 1000
                 test_labels[idx, :, :2] = test_labels[idx, :, :2] / res_w * 2 - [1, res_h / res_w]
                 test_labels[idx, :, 2:] = test_labels[idx, :, 2:] / res_w * 2
-                
         return train_labels, test_labels
     def read_hw(self):
         if self.test_hw is not None:
@@ -100,8 +77,7 @@ class DataReaderFIT3D(object):
             #     res_w, res_h = 1000, 1000
             # else:
             #     assert 0, '%d data item has an invalid camera name' % idx
-            res_w, res_h = 1000, 1000
-            test_hw[idx] = res_w, res_h
+            test_hw[idx] = self.res_w, self.res_h
         self.test_hw = test_hw
         return test_hw
     
@@ -110,8 +86,6 @@ class DataReaderFIT3D(object):
             return self.split_id_train, self.split_id_test
         vid_list_train = self.dt_dataset['train']['source'][::self.sample_stride]                      
         vid_list_test = self.dt_dataset['test']['source'][::self.sample_stride]                      
-        #print(len(vid_list_train), len(vid_list_test))
-        #print(self.data_stride_train, self.data_stride_test)
         self.split_id_train = split_clips(vid_list_train, self.n_frames, data_stride=self.data_stride_train) #stride=81
         self.split_id_test = split_clips(vid_list_test, self.n_frames, data_stride=self.data_stride_test) #stride=234
         return self.split_id_train, self.split_id_test
@@ -127,22 +101,26 @@ class DataReaderFIT3D(object):
         train_data, test_data = self.read_2d()     # train_data (1559752, 17, 3) test_data (566920, 17, 3)
         train_labels, test_labels = self.read_3d() # train_labels (1559752, 17, 3) test_labels (566920, 17, 3)
         split_id_train, split_id_test = self.get_split_id()
-        #print(len(split_id_train), len(split_id_test))
         train_data, test_data = train_data[split_id_train], np.array([test_data[split_id_test[i]] for i in range(len(split_id_test))]) # test_data[split_id_test]                # (N, 27, 17, 3)
-        #print(len(train_data), len(test_data))
         train_labels, test_labels = train_labels[split_id_train], np.array([test_labels[split_id_test[i]] for i in range(len(split_id_test))]) # test_labels[split_id_test]        # (N, 27, 17, 3)    # (N, 27, 17, 3)
         # ipdb.set_trace()
         return train_data, test_data, train_labels, test_labels
     
     def denormalize(self, test_data):
 #       data: (N, n_frames, 51) or data: (N, n_frames, 17, 3)        
-        n_clips = test_data.shape[0]
-        test_hw = self.get_hw()
-        data = test_data.reshape([n_clips, -1, 17, 3])
-        #assert len(data) == len(test_hw)
-        # denormalize (x,y,z) coordiantes for results
-        for idx, item in enumerate(data):
-            res_w, res_h = 1000, 1000 #test_hw[idx]
-            data[idx, :, :, :2] = (data[idx, :, :, :2] + np.array([1, res_h / res_w])) * res_w / 2
-            data[idx, :, :, 2:] = data[idx, :, :, 2:] * res_w / 2
-        return data # [n_clips, -1, 17, 3]
+        if self.mode == 'joint3d_image':
+            n_clips = test_data.shape[0]
+            test_hw = self.get_hw()
+            num_keypoints = test_data.shape[2]
+            data = test_data.reshape([n_clips, -1, num_keypoints, 3])
+            #assert len(data) == len(test_hw)
+            # denormalize (x,y,z) coordiantes for results
+            for idx, item in enumerate(data):
+                res_w, res_h = self.res_w, self.res_h
+                data[idx, :, :, :2] = (data[idx, :, :, :2] + np.array([1, res_h / res_w])) * res_w / 2
+                data[idx, :, :, 2:] = data[idx, :, :, 2:] * res_w / 2
+            return data # [n_clips, -1, 17, 3]
+        elif self.mode == 'world_3d' or self.mode == 'cam_3d':
+            return test_data
+        else:
+            raise ValueError("Invalid mode: {}".format(self.mode))

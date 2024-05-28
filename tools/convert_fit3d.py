@@ -24,14 +24,14 @@ def save_clips(subset_name, root_path, train_data, train_labels):
         with open(os.path.join(save_path, "%08d.pkl" % i), "wb") as myprofile:  
             pickle.dump(data_dict, myprofile)
             
-datareader = DataReaderFIT3D(n_frames=243, sample_stride=1, data_stride_train=81, data_stride_test=243, dt_file = 'fit3d_test_target_action.pkl', dt_root='data/motion3d/')
+datareader = DataReaderFIT3D(n_frames=243, sample_stride=1, data_stride_train=81, data_stride_test=243, dt_file = 'fit3d_gt_all_test.pkl', dt_root='data/motion3d/', mode='joint3d_image')
 
 train_data, test_data, train_labels, test_labels = datareader.get_sliced_data()
 #print(train_data.shape, test_data.shape)
 assert len(train_data) == len(train_labels)
 assert len(test_data) == len(test_labels)
 
-root_path = "data/motion3d/MB3D_f243s81/FIT3D_TEST_TARGET_ACTION"
+root_path = "data/motion3d/MB3D_f243s81/FIT3D-GT-ALL_TEST"
 if not os.path.exists(root_path):
     os.makedirs(root_path)
 

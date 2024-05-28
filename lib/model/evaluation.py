@@ -5,6 +5,23 @@ import prettytable
 from lib.model.loss import *
 from lib.utils.utils_data import flip_data
 
+def evaluate(args, model_pos, test_loader, datareader, checkpoint, only_one_batch=False):
+    print('INFO: Testing')
+    model_pos.eval()  
+    if 'DHDST_onevec' in args.model:
+        e1, e2, results_all, total_result_dict = evaluate_onevec(args, model_pos, test_loader, datareader)
+        inputs_all, gts_all = None, None
+    else:
+        try:
+            print(f"Evalute model on epoch {checkpoint['epoch']} (epoch starts from 1)")
+        except:
+            print('No epoch information in the checkpoint')
+        # get inference results          
+        results_all, inputs_all, gts_all = inference_eval(args, model_pos, test_loader, datareader, only_one_batch)
+        # calculate evaluation metric
+        e1, e2, total_result_dict = calculate_eval_metric(args, results_all, datareader)
+    
+    return e1, e2, results_all, inputs_all, gts_all, total_result_dict
 
 def preprocess_eval(args, batch_input, batch_gt):
     if torch.cuda.is_available():
@@ -73,7 +90,7 @@ def batch_inference_eval(args, model_pos, batch_input, batch_gt_torso, batch_gt_
             
     return predicted_3d_pos
 
-def inference_eval(args, model_pos, test_loader, datareader):
+def inference_eval(args, model_pos, test_loader, datareader, only_one_batch=False):
     results_all = []
     gts_all = []
     inputs_all = []
@@ -95,13 +112,14 @@ def inference_eval(args, model_pos, test_loader, datareader):
             results_all.append(predicted_3d_pos.cpu().numpy())
             gts_all.append(batch_gt.cpu().numpy())
             inputs_all.append(batch_input.cpu().numpy())
+            if only_one_batch: break
     results_all = np.concatenate(results_all)
     gts_all = np.concatenate(gts_all)
     inputs_all = np.concatenate(inputs_all)
     if args.denormalize_output:
         results_all = datareader.denormalize(results_all) # denormalize the predicted 3D poses
 
-    return results_all
+    return results_all, inputs_all, gts_all
 
 def get_clip_info(datareader, results_all):
     _, split_id_test = datareader.get_split_id() # [range(0, 243) ... range(102759, 103002)] 
@@ -120,6 +138,12 @@ def get_clip_info(datareader, results_all):
     source_clips = np.array([sources[split_id_test[i]] for i in range(len(split_id_test))]) # sources[split_id_test]
     frame_clips  = np.array([frames[split_id_test[i]] for i in range(len(split_id_test))]) # frames[split_id_test]
     gt_clips     = np.array([gts[split_id_test[i]] for i in range(len(split_id_test))]) # gts[split_id_test]
+
+    action_clips = action_clips[:len(results_all)]
+    factor_clips = factor_clips[:len(results_all)]
+    source_clips = source_clips[:len(results_all)]
+    frame_clips = frame_clips[:len(results_all)]
+    gt_clips = gt_clips[:len(results_all)]
     assert len(results_all)==len(action_clips), f'The number of results and action_clips are different: {len(results_all)} vs {len(action_clips)}'
 
     return num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions
@@ -186,7 +210,7 @@ def calculate_eval_metric(args, results_all, datareader):
         factor = factor_clips[idx][:,None,None]
         gt = gt_clips[idx]
         pred = results_all[idx]
-        if 'no_factor' not in args.dt_file:
+        if 'NO_FACTOR' not in args.subset_list[0]:
             pred *= factor # scaling image to world scale
         
         # Root-relative Errors

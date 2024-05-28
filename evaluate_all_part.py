@@ -25,6 +25,7 @@ from lib.data.dataset_motion_3d import MotionDataset3D
 from lib.data.augmentation import Augmenter2D
 from lib.data.datareader_h36m import DataReaderH36M  
 from lib.model.loss import *
+from train_custom import set_random_seed
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -37,11 +38,6 @@ def parse_args():
     parser.add_argument('-sd', '--seed', default=0, type=int, help='random seed')
     opts = parser.parse_args()
     return opts
-
-def set_random_seed(seed):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
 
 def save_checkpoint(chk_path, epoch, lr, optimizer, model_pos, min_loss):
     print('Saving checkpoint to', chk_path)

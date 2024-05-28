@@ -1,9 +1,19 @@
 import argparse
+from lib.utils.tools import * 
 
 def list_of_strings(arg):
     return arg.split(',')
 
-def parse_args():
+def get_opts_args(input_args=None):
+    opts = parse_args(input_args)
+    print(opts.config)
+    args = get_config(opts.config)
+    # check arguments
+    args, opts = check_args(args, opts)
+    print(opts.pretrained_backbone == '')
+    return args, opts
+
+def parse_args(input_args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/pretrain.yaml", help="Path to the config file.")
     parser.add_argument('-c', '--checkpoint', default='', type=str, metavar='PATH', help='checkpoint directory')
@@ -16,21 +26,27 @@ def parse_args():
     parser.add_argument('-g', '--gpu', default='0, 1', type=str, help='GPU id')
     parser.add_argument('--part_list', type=str, nargs='+', help='eval part list')
     parser.add_argument('-tr', '--test_run', action='store_true', help='test run')
-    opts = parser.parse_args()
+    if type(input_args) == type(None):
+        opts = parser.parse_args()
+    else:
+        opts = parser.parse_args(input_args)        
     return opts
 
 def check_args(args, opts):
+    # model
     try: test = args.model
     except:
         if opts.evaluate: args.model = opts.evaluate.split('/')[2]
         else: args.model = 'MB'
+    # part list
+    if type(opts.part_list) != type(None):
+        args.part_list = opts.part_list
     try: test = args.part_list
     except: args.part_list = ['whole']
     try: test = args.eval_part
     except:  
         if 'whole' in args.part_list: args.eval_part = 'whole'
         else: args.eval_part = args.part_list[0]
-    
     # loss weights
     try: test = args.lambda_3d_pos
     except: args.lambda_3d_pos = 0.0
@@ -72,26 +88,27 @@ def check_args(args, opts):
     except: args.lambda_dh_angle2 = 0.0
     try: test = args.lambda_dh_length
     except: args.lambda_dh_length = 0.0
-
+    # canonical input
     try: test = args.canonical
     except: args.canonical = False
-    
+    # finetune only head
     try: test = args.finetune_only_head
     except: args.finetune_only_head = False
-    
+    # freeze backbone
     try: test = args.freeze_backbone
     except: args.freeze_backbone = False
-
+    # calculate mpjpe after part
     try: test = args.mpjpe_after_part
     except: args.mpjpe_after_part = False
-
+    # default gt 3d mode
     try: test = args.gt_mode
-    except: args.gt_mode = 'joint3d_image'
-
+    except: args.gt_mode = 'joint3d_image' # joint3d_image, cam_3d, world_3d
+    # denormalize oupput of the model (3d pose)
     try: test = args.denormalize_output
     except: args.denormalize_output = True
-    
+    # print summary table
     try: test = args.print_summary_table
     except: args.print_summary_table = True
-
-    return args
+    
+    return args, opts
+    
