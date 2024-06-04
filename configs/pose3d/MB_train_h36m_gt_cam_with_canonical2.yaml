@@ -31,7 +31,7 @@ att_fuse: True
 
 # Data
 data_root: data/motion3d/MB3D_f243s81/
-subset_list: [H36M-GT-CAM]
+subset_list: [H36M-GT]
 dt_file: h36m_gt.pkl
 clip_len: 243
 data_stride: 81
