@@ -3,7 +3,7 @@ train_2d: False
 no_eval: False
 finetune: False
 partial_train: null
-test_run: False
+test_run: True
 
 # Traning 
 epochs: 60
@@ -16,7 +16,7 @@ lr_decay: 0.99
 
 # Test
 part_list: ['whole'] 
-denormalize_output: False
+denormalize_output: True
 
 # Model
 model: 'MB_train_h36m_gt_cam'

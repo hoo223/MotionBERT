@@ -17,7 +17,7 @@ lr_decay: 0.99
 
 # Test
 part_list: ['whole'] 
-denormalize_output: False
+denormalize_output: True
 
 # Model
 model: 'MB_train_h36m_gt_cam_with_canonical2'
