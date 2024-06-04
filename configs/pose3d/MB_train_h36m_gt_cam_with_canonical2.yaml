@@ -40,7 +40,7 @@ sample_stride: 1
 num_joints: 17
 no_conf: False
 gt_2d: False
-gt_mode: 'cam_3d' # in m
+gt_mode: 'joint3d_image'
 
 # Loss
 lambda_3d_pos: 1.0
