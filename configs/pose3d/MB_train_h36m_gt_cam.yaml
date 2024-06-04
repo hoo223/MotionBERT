@@ -3,7 +3,7 @@ train_2d: False
 no_eval: False
 finetune: False
 partial_train: null
-test_run: True
+test_run: False
 
 # Traning 
 epochs: 60
