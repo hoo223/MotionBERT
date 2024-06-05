@@ -88,7 +88,10 @@ def resample(ori_len, target_len, replay=False, randomness=True):
             result = np.linspace(0, ori_len, num=target_len, endpoint=False, dtype=int)
         return result
 
-def split_clips(vid_list, n_frames, data_stride):
+def split_clips(vid_list, n_frames, data_stride): 
+    # vid_list = ['source'][::self.sample_stride] 
+    # n_frames = 243
+    # data_stride -> data_stride_train=81, data_stride_test=243
     result = []
     n_clips = 0
     st = 0

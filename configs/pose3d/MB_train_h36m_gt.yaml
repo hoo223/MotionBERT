@@ -3,7 +3,6 @@ train_2d: False
 no_eval: False
 finetune: False
 partial_train: null
-canonical: True
 test_run: False
 
 # Traning 
@@ -20,7 +19,7 @@ part_list: ['whole']
 denormalize_output: True
 
 # Model
-model: 'MB_train_h36m_gt_cam_with_canonical2'
+model: 'MB_train_h36m_gt'
 maxlen: 243
 dim_feat: 512
 mlp_ratio: 2
