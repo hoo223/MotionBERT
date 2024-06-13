@@ -69,3 +69,17 @@ def get_frame_slider(max_frame):
         readout=True,
         readout_format='d'
     )
+    
+def get_trans_slider(min=-1.0, max=1.0, step=0.01, description='trans'):
+    return widgets.FloatSlider(
+        value=0.0,
+        min=min,
+        max=max,
+        step=step,
+        description=description,
+        disabled=False,
+        continuous_update=True,
+        orientation='horizontal',
+        readout=True,
+        readout_format='f'
+    )
