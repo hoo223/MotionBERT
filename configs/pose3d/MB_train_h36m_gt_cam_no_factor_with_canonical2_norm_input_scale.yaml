@@ -3,6 +3,8 @@ train_2d: False
 no_eval: False
 finetune: False
 partial_train: null
+canonical: True
+norm_input_scale: True
 test_run: False
 
 # Traning 
@@ -19,7 +21,7 @@ part_list: ['whole']
 denormalize_output: False
 
 # Model
-model: 'MB_train_h36m_gt_cam_no_factor'
+model: 'MB_train_h36m_gt_cam_no_factor_with_canonical2_norm_input_scale'
 maxlen: 243
 dim_feat: 512
 mlp_ratio: 2
@@ -30,8 +32,8 @@ att_fuse: True
 
 # Data
 data_root: data/motion3d/MB3D_f243s81/
-subset_list: [FIT3D-GT-CAM_NO_FACTOR-ALL_TEST]
-dt_file: fit3d_gt_no_factor_all_test.pkl
+subset_list: [H36M-GT-CAM_NO_FACTOR]
+dt_file: h36m_gt.pkl
 clip_len: 243
 data_stride: 81
 rootrel: True

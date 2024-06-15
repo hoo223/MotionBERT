@@ -91,6 +91,8 @@ def check_args(args, opts):
     # canonical input
     try: test = args.canonical
     except: args.canonical = False
+    try: test = args.norm_input_scale
+    except: args.norm_input_scale = False
     # finetune only head
     try: test = args.finetune_only_head
     except: args.finetune_only_head = False

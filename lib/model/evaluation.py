@@ -13,7 +13,7 @@ def evaluate(args, model_pos, test_loader, datareader, checkpoint, only_one_batc
         inputs_all, gts_all = None, None
     else:
         try:
-            print(f"Evalute model on epoch {checkpoint['epoch']} (epoch starts from 1)")
+            print(f"Evalute model on epoch {checkpoint['epoch']} (epoch starts from {args.start_epoch})")
         except:
             print('No epoch information in the checkpoint')
         # get inference results          
@@ -32,6 +32,10 @@ def preprocess_eval(args, batch_input, batch_gt):
     if args.canonical:
         batch_input = batch_input - batch_input[:, :, 0:1, :] # root-relative
         batch_gt = batch_gt - batch_gt[:, :, 0:1, :]
+    if args.norm_input_scale:
+        B, F, J, C = batch_input.shape
+        scale = torch.norm(batch_input[..., :2].reshape(B, F, 1, 34), dim=-1, keepdim=True)
+        batch_input = batch_input / scale
     if args.rootrel:
         batch_gt = batch_gt - batch_gt[:,:,0:1,:]
     if batch_gt.shape[2] == 17:

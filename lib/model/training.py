@@ -56,12 +56,14 @@ def train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2
     optimizer = optim.AdamW(filter(lambda p: p.requires_grad, model_pos.parameters()), lr=lr, weight_decay=args.weight_decay)
     lr_decay = args.lr_decay
     st = 0
+    args.start_epoch = 0
     if args.train_2d:
         print('INFO: Training on {}(3D)+{}(2D) batches'.format(len(train_loader_3d), len(instav_loader_2d) + len(posetrack_loader_2d)))
     else:
         print('INFO: Training on {}(3D) batches'.format(len(train_loader_3d)))
     if opts.resume:
         st = checkpoint['epoch']
+        args.start_epoch = st
         if 'optimizer' in checkpoint and checkpoint['optimizer'] is not None:
             optimizer.load_state_dict(checkpoint['optimizer'])
         else:
@@ -122,7 +124,7 @@ def train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2
             if args.test_run: break
         except:
             pass
-
+    
 def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt):
     model_pos.train()
     pbar = tqdm(train_loader)
@@ -295,6 +297,10 @@ def preprocess_train(args, batch_input, batch_gt, has_3d, has_gt):
         if args.canonical:
             batch_input = batch_input - batch_input[:, :, 0:1, :] # root-relative
             batch_gt = batch_gt - batch_gt[:, :, 0:1, :]
+        if args.norm_input_scale:
+            B, F, J, C = batch_input.shape
+            scale = torch.norm(batch_input[..., :2].reshape(B, F, 1, 34), dim=-1, keepdim=True)
+            batch_input = batch_input / scale
         if batch_gt.shape[2] == 17:
             batch_gt_torso = batch_gt[:, :, [0, 1, 4, 7, 8, 9, 10, 11, 14], :]
             batch_gt_limb = batch_gt[:, :, [2, 3, 5, 6, 12, 13, 15, 16], :]
