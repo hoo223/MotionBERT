@@ -1,20 +1,20 @@
 import ipywidgets as widgets
 
 
-def get_subject_select(subject_list):
+def get_subject_select(subject_list, rows=15):
     return widgets.Select(
         options=subject_list,
         value=subject_list[0],
-        rows=15,
+        rows=rows,
         description='Subject:',
         disabled=False
     )
 
-def get_action_select(action_list):
+def get_action_select(action_list, rows=15):
     return widgets.Select(
         options=action_list,
         value=action_list[0],
-        rows=15,
+        rows=rows,
         description='Action:',
         disabled=False,
     )

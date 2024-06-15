@@ -51,3 +51,18 @@ def get_error_max_frame_text():
         description='max error frame:',
         disabled=True
     )
+    
+def get_float_text(description):
+    return widgets.FloatText(
+        value=0.0,
+        description=description,
+        disabled=True
+    )
+    
+def get_str_text(description):
+    return widgets.Text(
+        value='',
+        placeholder='no data',
+        description=description,
+        disabled=True
+    )
