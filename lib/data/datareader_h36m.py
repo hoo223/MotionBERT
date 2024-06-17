@@ -9,7 +9,7 @@ from lib.utils.utils_data import split_clips
 random.seed(0)
     
 class DataReaderH36M(object):
-    def __init__(self, n_frames, sample_stride, data_stride_train, data_stride_test, read_confidence=True, dt_root = 'data/motion3d', dt_file = 'h36m_cpn_cam_source.pkl', mode='joint3d_image'):
+    def __init__(self, n_frames, sample_stride, data_stride_train, data_stride_test, read_confidence=True, dt_root = 'data/motion3d', dt_file = 'h36m_cpn_cam_source.pkl', input_mode='joint_2d', gt_mode='joint3d_image'):
         self.gt_trainset = None
         self.gt_testset = None
         self.split_id_train = None
@@ -21,12 +21,13 @@ class DataReaderH36M(object):
         self.data_stride_train = data_stride_train
         self.data_stride_test = data_stride_test
         self.read_confidence = read_confidence
-        self.mode = mode
+        self.input_mode = input_mode
+        self.gt_mode = gt_mode
         
     def read_2d(self):
-        print(self.dt_dataset['train']['joint_2d'].shape, self.dt_dataset['test']['joint_2d'].shape)
-        trainset = self.dt_dataset['train']['joint_2d'][::self.sample_stride, :, :2].astype(np.float32)  # [N, 17, 2]
-        testset = self.dt_dataset['test']['joint_2d'][::self.sample_stride, :, :2].astype(np.float32)  # [N, 17, 2]
+        print(self.dt_dataset['train'][self.input_mode].shape, self.dt_dataset['test'][self.input_mode].shape)
+        trainset = self.dt_dataset['train'][self.input_mode][::self.sample_stride, :, :2].astype(np.float32)  # [N, 17, 2]
+        testset = self.dt_dataset['test'][self.input_mode][::self.sample_stride, :, :2].astype(np.float32)  # [N, 17, 2]
         # map to [-1, 1]
         for idx, camera_name in enumerate(self.dt_dataset['train']['camera_name']):
             if camera_name == '54138969' or camera_name == '60457274':
@@ -61,9 +62,9 @@ class DataReaderH36M(object):
         return trainset, testset
 
     def read_3d(self):
-        train_labels = self.dt_dataset['train'][self.mode][::self.sample_stride, :, :3].astype(np.float32)  # [N, 17, 3]
-        test_labels = self.dt_dataset['test'][self.mode][::self.sample_stride, :, :3].astype(np.float32)    # [N, 17, 3]
-        if self.mode == 'joint3d_image': # normalize to [-1, 1]
+        train_labels = self.dt_dataset['train'][self.gt_mode][::self.sample_stride, :, :3].astype(np.float32)  # [N, 17, 3]
+        test_labels = self.dt_dataset['test'][self.gt_mode][::self.sample_stride, :, :3].astype(np.float32)    # [N, 17, 3]
+        if self.gt_mode == 'joint3d_image': # normalize to [-1, 1]
             # map to [-1, 1]
             for idx, camera_name in enumerate(self.dt_dataset['train']['camera_name']):
                 if camera_name == '54138969' or camera_name == '60457274':
@@ -84,10 +85,10 @@ class DataReaderH36M(object):
                     assert 0, '%d data item has an invalid camera name' % idx
                 test_labels[idx, :, :2] = test_labels[idx, :, :2] / res_w * 2 - [1, res_h / res_w]
                 test_labels[idx, :, 2:] = test_labels[idx, :, 2:] / res_w * 2
-        elif self.mode == 'world_3d' or self.mode == 'cam_3d':
+        elif self.gt_mode == 'world_3d' or self.gt_mode == 'cam_3d':
             pass
         else:
-            raise ValueError("Invalid mode for read_3d: {}".format(self.mode))
+            raise ValueError("Invalid mode for read_3d: {}".format(self.gt_mode))
             
         return train_labels, test_labels
     
@@ -133,7 +134,7 @@ class DataReaderH36M(object):
     
     def denormalize(self, test_data):
         # test_data: (N, n_frames, 51) or test_data: (N, n_frames, 17, 3)        
-        if self.mode == 'joint3d_image':
+        if self.gt_mode == 'joint3d_image':
             n_clips = test_data.shape[0]
             test_hw = self.get_hw()
             num_keypoints = test_data.shape[2]
@@ -145,7 +146,7 @@ class DataReaderH36M(object):
                 data[idx, :, :, :2] = (data[idx, :, :, :2] + np.array([1, res_h / res_w])) * res_w / 2
                 data[idx, :, :, 2:] = data[idx, :, :, 2:] * res_w / 2
             return data # [n_clips, -1, 17, 3]
-        elif self.mode == 'world_3d' or self.mode == 'cam_3d':
+        elif self.gt_mode == 'world_3d' or self.gt_mode == 'cam_3d':
             return test_data
         else:
-            raise ValueError("Invalid mode for denormalize: {}".format(self.mode))
+            raise ValueError("Invalid mode for denormalize: {}".format(self.gt_mode))

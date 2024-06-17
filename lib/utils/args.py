@@ -102,6 +102,9 @@ def check_args(args, opts):
     # calculate mpjpe after part
     try: test = args.mpjpe_after_part
     except: args.mpjpe_after_part = False
+    # default input mode
+    try: test = args.input_mode
+    except: args.input_mode = 'joint_2d' # joint_2d_from_canonical_3d
     # default gt 3d mode
     try: test = args.gt_mode
     except: args.gt_mode = 'joint3d_image' # joint3d_image, cam_3d, world_3d

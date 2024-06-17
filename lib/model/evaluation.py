@@ -13,7 +13,10 @@ def evaluate(args, model_pos, test_loader, datareader, checkpoint, only_one_batc
         inputs_all, gts_all = None, None
     else:
         try:
-            print(f"Evalute model on epoch {checkpoint['epoch']} (epoch starts from {args.start_epoch})")
+            if args.start_epoch:
+                print(f"Evalute model on epoch {checkpoint['epoch']} (epoch starts from {args.start_epoch})")
+            else:
+                print(f"Evalute model on epoch {checkpoint['epoch']}")
         except:
             print('No epoch information in the checkpoint')
         # get inference results          
@@ -132,10 +135,10 @@ def get_clip_info(datareader, results_all):
         factors = np.array(datareader.dt_dataset['test']['2.5d_factor']) # 103130 [3.49990559 ... 2.09230852]
     except: # if no factor
         factors = np.ones_like(actions)
-    if datareader.mode == 'joint3d_image':
+    if datareader.gt_mode == 'joint3d_image':
         gts = np.array(datareader.dt_dataset['test']['joints_2.5d_image'])
-    elif datareader.mode == 'world_3d' or datareader.mode == 'cam_3d':
-        gts = np.array(datareader.dt_dataset['test'][datareader.mode]) # 103130, 17, 3
+    elif datareader.gt_mode == 'world_3d' or datareader.gt_mode == 'cam_3d':
+        gts = np.array(datareader.dt_dataset['test'][datareader.gt_mode]) # 103130, 17, 3
     sources = np.array(datareader.dt_dataset['test']['source']) # 103130 ['S02_6_squat_001' ... 'S08_4_kneeup_001']
 
     num_test_frames = len(actions)

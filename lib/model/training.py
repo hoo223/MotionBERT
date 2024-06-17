@@ -17,10 +17,11 @@ from my_utils import get_limb_angle, get_batch_lower_torso_frame_from_pose, get_
 from lib.model.loss import *
 from lib.model.evaluation import *
 
-def save_checkpoint(chk_path, epoch, lr, optimizer, model_pos, min_loss):
+def save_checkpoint(chk_path, epoch, start_epoch, lr, optimizer, model_pos, min_loss):
     print('Saving checkpoint to', chk_path)
     torch.save({
         'epoch': epoch + 1,
+        'start_epoch': start_epoch,
         'lr': lr,
         'optimizer': optimizer.state_dict(),
         'model_pos': model_pos.state_dict(),
@@ -112,19 +113,19 @@ def train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2
         chk_path = os.path.join(opts.checkpoint, 'epoch_{}.bin'.format(epoch))
         chk_path_latest = os.path.join(opts.checkpoint, 'latest_epoch.bin')
         chk_path_best = os.path.join(opts.checkpoint, 'best_epoch.bin')
-        save_checkpoint(chk_path_latest, epoch, lr, optimizer, model_pos, min_loss) # save latest checkpoint
+        save_checkpoint(chk_path_latest, epoch, args.start_epoch, lr, optimizer, model_pos, min_loss) # save latest checkpoint
         if (epoch + 1) % args.checkpoint_frequency == 0:
-            save_checkpoint(chk_path, epoch, lr, optimizer, model_pos, min_loss) # save checkpoint every args.checkpoint_frequency epochs
+            save_checkpoint(chk_path, epoch, args.start_epoch, lr, optimizer, model_pos, min_loss) # save checkpoint every args.checkpoint_frequency epochs
         if e1 < min_loss:
             min_loss = e1
-            save_checkpoint(chk_path_best, epoch, lr, optimizer, model_pos, min_loss) # save best checkpoint
+            save_checkpoint(chk_path_best, epoch, args.start_epoch, lr, optimizer, model_pos, min_loss) # save best checkpoint
         
         # For test run, break after one epoch
         try:
             if args.test_run: break
         except:
             pass
-    
+            
 def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt):
     model_pos.train()
     pbar = tqdm(train_loader)
