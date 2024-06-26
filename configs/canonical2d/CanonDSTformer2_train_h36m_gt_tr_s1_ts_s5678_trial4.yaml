@@ -23,7 +23,7 @@ denormalize_output: False
 backbone: 'CanonDSTformer2'
 dim_in: 2
 dim_out: 2
-model: 'CanonDSTformer2_train_h36m_gt_tr_s1_ts_s5678'
+model: 'CanonDSTformer2_train_h36m_gt_tr_s1_ts_s5678_trial4'
 maxlen: 243
 dim_feat: 256
 mlp_ratio: 2
