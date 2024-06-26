@@ -22,7 +22,11 @@ def evaluate(args, model_pos, test_loader, datareader, checkpoint, only_one_batc
         # get inference results          
         results_all, inputs_all, gts_all = inference_eval(args, model_pos, test_loader, datareader, only_one_batch)
         # calculate evaluation metric
-        e1, e2, total_result_dict = calculate_eval_metric(args, results_all, datareader)
+        if 'CANONICALIZATION' in args.subset_list[0]: # for canonicalization network
+            e1, total_result_dict = calculate_eval_metric_canonicalization(args, inputs_all, results_all, gts_all, datareader)
+            e2 = -1
+        else:
+            e1, e2, total_result_dict = calculate_eval_metric(args, results_all, datareader)
     
     return e1, e2, results_all, inputs_all, gts_all, total_result_dict
 
@@ -30,17 +34,24 @@ def preprocess_eval(args, batch_input, batch_gt):
     if torch.cuda.is_available():
         batch_input = batch_input.cuda()
         batch_gt = batch_gt.cuda()
+        
+    # Test input pre-processing
     if args.no_conf:
         batch_input = batch_input[:, :, :, :2]
     if args.canonical:
         batch_input = batch_input - batch_input[:, :, 0:1, :] # root-relative
-        batch_gt = batch_gt - batch_gt[:, :, 0:1, :]
     if args.norm_input_scale:
         B, F, J, C = batch_input.shape
         scale = torch.norm(batch_input[..., :2].reshape(B, F, 1, 34), dim=-1, keepdim=True)
         batch_input = batch_input / scale
+        
+    # Test GT pre-processing
     if args.rootrel:
         batch_gt = batch_gt - batch_gt[:,:,0:1,:]
+    else:
+        batch_gt[:,0,0,2] = 0
+    if args.canonical:
+        batch_gt = batch_gt - batch_gt[:, :, 0:1, :]
     if batch_gt.shape[2] == 17:
         batch_gt_torso = batch_gt[:, :, [0, 1, 4, 7, 8, 9, 10, 11, 14], :] 
         batch_gt_limb_pos = batch_gt[:, :, [2, 3, 5, 6, 12, 13, 15, 16], :]
@@ -111,8 +122,6 @@ def inference_eval(args, model_pos, test_loader, datareader, only_one_batch=Fals
             # postprocessing
             if args.rootrel:
                 predicted_3d_pos[:,:,0,:] = 0     # [N,T,17,3]
-            else:
-                batch_gt[:,0,0,2] = 0
             if args.gt_2d: # input 2d를 추론값으로 사용함으로써 depth만 추정하도록 함
                 predicted_3d_pos[...,:2] = batch_input[...,:2]
             # store the results
@@ -139,6 +148,8 @@ def get_clip_info(datareader, results_all):
         gts = np.array(datareader.dt_dataset['test']['joints_2.5d_image'])
     elif datareader.gt_mode == 'world_3d' or datareader.gt_mode == 'cam_3d':
         gts = np.array(datareader.dt_dataset['test'][datareader.gt_mode]) # 103130, 17, 3
+    elif datareader.gt_mode == 'joint_2d_from_canonical_3d':
+        gts = np.array(datareader.dt_dataset['test']['joint_2d_from_canonical_3d'])
     sources = np.array(datareader.dt_dataset['test']['source']) # 103130 ['S02_6_squat_001' ... 'S08_4_kneeup_001']
 
     num_test_frames = len(actions)
@@ -324,6 +335,120 @@ def calculate_eval_metric(args, results_all, datareader):
             e1 = e1_part
             e2 = e2_part
     return e1, e2, total_result_dict
+
+def calculate_eval_metric_canonicalization(args, inputs_all, results_all, gts_all, datareader):
+    num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions = get_clip_info(datareader, results_all)
+
+    total_result_dict = {}
+    pelvis, r_hip, l_hip, torso, neck, l_shoulder, r_shoulder = 0, 1, 4, 7, 8, 11, 14
+    r_knee, r_ankle, l_knee, l_ankle = 2, 3, 5, 6
+    l_elbow, l_wrist, r_elbow, r_wrist = 12, 13, 15, 16
+    nose, head = 9, 10
+    action_names = sorted(set(datareader.dt_dataset['test']['action']))
+    try:
+        joint_list = args.eval_keypoint # Use only the specified keypoint number in config
+        part = str(args.eval_keypoint)
+        part_list = [part]
+        args.eval_part = part
+        total_result_dict[part] = {
+            'e1_all': np.zeros(num_test_frames),
+            'oc': np.zeros(num_test_frames),
+            'results': {},
+        }
+
+        # To classify the results by action
+        for action in action_names:
+            total_result_dict[part]['results'][action] = []
+    except:
+        print('No eval_keypoint. Use part list')
+        part_list = args.part_list
+        for part in part_list:
+            total_result_dict[part] = {
+                'e1_all': np.zeros(num_test_frames),
+                'oc': np.zeros(num_test_frames),
+                'results': {},
+            }
+            
+            # To classify the results by action
+            for action in action_names:
+                total_result_dict[part]['results'][action] = []
+    
+    for idx in range(len(results_all)):
+        input_2d = inputs_all[idx]
+        gt = gts_all[idx][..., :2] # without confidence
+        pred = results_all[idx]
+        frame_list = frame_clips[idx]
+        
+        if not args.mpjpe_after_part:
+            # pred, gt: (243, 17, 3)
+            err1_per_joint = mpjpe_for_each_joint(pred, gt) # (243, 17)
+        
+        for part in part_list:
+            if part == 'whole': joint_list = [j for j in range(pred.shape[1])]
+            elif part == 'torso_small': joint_list = [pelvis, r_hip, l_hip, neck, l_shoulder, r_shoulder]
+            elif part == 'torso_full': joint_list = [pelvis, r_hip, l_hip, torso, neck, nose, head, l_shoulder, r_shoulder]
+            elif part == 'torso_full_to_small': joint_list = [0, 1, 2, 4, 7, 8]
+            elif part == 'arms': joint_list = [l_elbow, l_wrist, r_elbow, r_wrist]
+            elif part == 'right_arm': joint_list = [r_elbow, r_wrist]
+            elif part == 'left_arm': joint_list = [l_elbow, l_wrist]
+            elif part == 'right_leg': joint_list = [r_knee, r_ankle]
+            elif part == 'left_leg': joint_list = [l_knee, l_ankle]
+            elif part == 'legs': joint_list = [r_knee, r_ankle, l_knee, l_ankle]
+            elif part == 'pelvis': joint_list = [pelvis]
+            elif part == 'r_hip': joint_list = [r_hip]
+            elif part == 'l_hip': joint_list = [l_hip]
+            elif part == 'torso': joint_list = [torso]
+            elif part == 'neck': joint_list = [neck]
+            elif part == 'l_shoulder': joint_list = [l_shoulder]
+            elif part == 'r_shoulder': joint_list = [r_shoulder]
+            elif part == 'l_elbow': joint_list = [l_elbow]
+            elif part == 'l_wrist': joint_list = [l_wrist]
+            elif part == 'r_elbow': joint_list = [r_elbow]
+            elif part == 'r_wrist': joint_list = [r_wrist]
+            elif part == 'r_knee' : joint_list = [r_knee]
+            elif part == 'r_ankle': joint_list = [r_ankle]
+            elif part == 'l_knee' : joint_list = [l_knee]
+            elif part == 'l_ankle': joint_list = [l_ankle]
+            elif part == 'nose'   : joint_list = [nose]
+            elif part == 'head'   : joint_list = [head]
+            
+            if args.mpjpe_after_part:
+                err1_per_joint = mpjpe_for_each_joint(pred[:, joint_list], gt[:, joint_list]) # (243, 17)
+                err1 = np.mean(err1_per_joint, axis=1)
+            else:
+                err1 = np.mean(err1_per_joint[:, joint_list], axis=1) # mpjpe(pred, gt) # (243, )
+
+            total_result_dict[part]['e1_all'][frame_list] += err1 # (243, ) # 각 프레임 별 에러를 더해줌
+            total_result_dict[part]['oc'][frame_list] += 1
+        
+    # Error per action
+    for idx in range(num_test_frames):
+        for part in part_list:
+            if total_result_dict[part]['e1_all'][idx] > 0:
+                err1 = total_result_dict[part]['e1_all'][idx] / total_result_dict[part]['oc'][idx]
+                action = actions[idx]
+                total_result_dict[part]['results'][action].append(err1)
+
+    for part in part_list:
+        print('Part:', part)
+        final_result = []
+        final_result_procrustes = []
+        summary_table = prettytable.PrettyTable()
+        summary_table.field_names = ['test_name'] + action_names # first row
+        for action in action_names:
+            final_result.append(np.mean(total_result_dict[part]['results'][action]))
+        summary_table.add_row(['P1 ({})'.format(part)] + final_result) # second row
+        if args.print_summary_table:
+            print(summary_table)
+        
+        # Total Error
+        e1_part = np.mean(np.array(final_result))
+        print('Error:', e1_part)
+        print('----------------------------------------')
+        if part == args.eval_part:
+            e1 = e1_part
+        
+    return e1, total_result_dict
 
 
 # ------------------------------------------------------------------------------------------- # 

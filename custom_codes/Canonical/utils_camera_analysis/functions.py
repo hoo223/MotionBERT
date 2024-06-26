@@ -11,16 +11,20 @@ def update_world_3d(self):
     elif self.cam_mode == 'h36m':
         self.world_3d = self.ref_pose.copy()
         
-def update_canonical_3d(self, cam_name):
+def update_canonical_3d(self, cam_name, mode='same_dist'):
     canonical_3d = self.world_3d.copy()
     cam_origin = self.cameras[cam_name].origin
     pelvis = self.world_3d[0]
     vec_cam_origin_to_pelvis = pelvis - cam_origin
     mag_cam_origin_to_pelvis = np.linalg.norm(vec_cam_origin_to_pelvis)
-    vec_cam_forward = self.cameras[cam_name].R[2] * mag_cam_origin_to_pelvis
-    canonical_pelvis = cam_origin + vec_cam_forward
+    vec_cam_forward = self.cameras[cam_name].R[2]
+    if mode == 'same_dist':
+        vec_to_new_pelvis = vec_cam_forward * mag_cam_origin_to_pelvis
+    elif mode == 'same_z':
+        vec_to_new_pelvis = vec_cam_forward * np.dot(vec_cam_origin_to_pelvis, vec_cam_forward)/np.dot(vec_cam_forward, vec_cam_forward)
+    canonical_pelvis = cam_origin + vec_to_new_pelvis
     canonical_3d = canonical_3d - pelvis + canonical_pelvis
-    return vec_cam_origin_to_pelvis, vec_cam_forward, canonical_3d
+    return vec_cam_origin_to_pelvis, vec_cam_forward*mag_cam_origin_to_pelvis, canonical_3d
 
 def update_cam_3d(self, cam_name):
     cam_ext = self.cameras[cam_name].ext_mat
@@ -35,10 +39,9 @@ def generate_2d_pose(self, pose_3d, cam_name):
     
     pose_2d = projection(pose_3d, cam_proj)[..., :2]
     pose_2d_norm = normalize_screen_coordinates(pose_2d, W, H)
-    pose_2d_norm_canonical = pose_2d_norm - pose_2d_norm[0]
+    pose_2d_norm_centered = pose_2d_norm - pose_2d_norm[0]
     
-    return pose_2d, pose_2d_norm, pose_2d_norm_canonical
-    
+    return pose_2d, pose_2d_norm, pose_2d_norm_centered
     
 def calculate_error(self, cam_name):
     cam_origin = self.cameras[cam_name].origin
@@ -71,7 +74,7 @@ def visualize_data(self):
     if self.cam_mode == 'custom':
         self.update_world_3d()
         self.cam_3d = self.update_cam_3d('custom')
-        self.pose_2d, self.pose_2d_norm, self.pose_2d_norm_canonical = self.generate_2d_pose('custom')
+        self.pose_2d, self.pose_2d_norm, self.pose_2d_norm_centered = self.generate_2d_pose('custom')
         if self.line_mode:   dataset_type = 'base'
         else:                dataset_type = 'h36m'
         self.calculate_error(cam_name='custom')
@@ -95,7 +98,8 @@ def visualize_data(self):
                 draw_2d_pose(self.ax_compare2, self.compare2_pose, normalize=True, dataset=dataset_type)
     elif self.cam_mode == 'h36m':
         self.update_world_3d()
-        self.canonical_3ds = {}
+        self.canonical_3ds_same_dist = {}
+        self.canonical_3ds_same_z = {}
         self.vec_cam_origin_to_pelvises = {}
         self.vec_cam_forwards = {}
         self.cam_3ds = {}
@@ -103,21 +107,27 @@ def visualize_data(self):
         self.pose_2d_norms = {}
         self.pose_2d_norm_canonicals = {}
         
-        
         if self.select_cam.value == 'total': cam_list = self.cameras.keys()
         else:                                cam_list = [self.select_cam.value]
+        
+        # clear 3D axes
+        with self.plot3d:
+            clear_axes([self.ax_3d_world, self.ax_3d_cam])
+        
         for cam_name in cam_list:
             if cam_name == 'custom': continue
-            
             self.cam_3ds[cam_name] = self.update_cam_3d(cam_name)
-            pose_2ds, pose_2d_norms, pose_2d_norms_input_canonical = self.generate_2d_pose(self.world_3d, cam_name)
+            pose_2ds, pose_2d_norms, pose_2d_norms_centered = self.generate_2d_pose(self.world_3d, cam_name)
             
             if self.select_cam.value != 'total':
-                self.vec_cam_origin_to_pelvises[cam_name], self.vec_cam_forwards[cam_name], self.canonical_3ds[cam_name] = self.update_canonical_3d(cam_name)
-                pose_2d_canonical, pose_2d_norms_canonical, _ = self.generate_2d_pose(self.canonical_3ds[cam_name], cam_name)
+                self.vec_cam_origin_to_pelvises[cam_name], self.vec_cam_forwards[cam_name], self.canonical_3ds_same_dist[cam_name] = self.update_canonical_3d(cam_name, 'same_dist')
+                _, _, self.canonical_3ds_same_z[cam_name] = self.update_canonical_3d(cam_name, 'same_z')
+                pose_2d_canonical_3d_same_dist, pose_2d_norms_canonical_3d_same_dist, _ = self.generate_2d_pose(self.canonical_3ds_same_dist[cam_name], cam_name)
+                pose_2d_canonical_3d_same_z, pose_2d_norms_canonical_3d_same_z, _ = self.generate_2d_pose(self.canonical_3ds_same_z[cam_name], cam_name)
+                #with self.test_out:
+                #    print(pose_2d_canonical_3d_same_dist[0], pose_2d_canonical_3d_same_z[0])
 
             with self.plot3d:
-                clear_axes([self.ax_3d_world, self.ax_3d_cam])
                 plt.sca(self.ax_3d_world)
                 self.cameras[cam_name].cam_frame.draw3d()
                 draw_3d_pose(self.ax_3d_world, self.world_3d, dataset='h36m')
@@ -132,17 +142,17 @@ def visualize_data(self):
                                 head_length=0.5,
                                 color='b',
                                 ax=self.ax_3d_world)
-                    draw_3d_pose(self.ax_3d_world, self.canonical_3ds[cam_name], dataset='h36m', color='r')
+                    #draw_3d_pose(self.ax_3d_world, self.canonical_3ds_same_dist[cam_name], dataset='h36m', color='r')
+                    draw_3d_pose(self.ax_3d_world, self.canonical_3ds_same_z[cam_name], dataset='h36m', color='b')
                     draw_3d_pose(self.ax_3d_cam, get_rootrel_pose(self.cam_3ds[cam_name]), dataset='h36m')
             with self.plot2d:
                 if self.select_cam.value != 'total':
-                    clear_axes([self.ax_2ds[cam_name], self.ax_2ds_canonical[cam_name], self.ax_2ds_input_canonical[cam_name]])
-                    draw_2d_pose(self.ax_2ds_canonical[cam_name], pose_2d_norms_canonical, normalize=True, dataset='h36m')
-                    draw_2d_pose(self.ax_2ds_input_canonical[cam_name], pose_2d_norms_input_canonical, normalize=True, dataset='h36m')
-                    # with self.test_out:
-                    #     print(pose_2d_canonical)
-                else:
-                    clear_axes([self.ax_2ds[cam_name]])
+                    clear_axes([self.ax_2ds[cam_name], self.ax_2ds_canonical_3d_same_dist[cam_name], self.ax_2ds_canonical_3d_same_z[cam_name], self.ax_2ds_input_centering[cam_name]])
+                    draw_2d_pose(self.ax_2ds_canonical_3d_same_dist[cam_name], pose_2d_norms_canonical_3d_same_dist, normalize=True, dataset='h36m')
+                    draw_2d_pose(self.ax_2ds_canonical_3d_same_z[cam_name], pose_2d_norms_canonical_3d_same_z, normalize=True, dataset='h36m')
+                    draw_2d_pose(self.ax_2ds_input_centering[cam_name], pose_2d_norms_centered, normalize=True, dataset='h36m')
+                    #draw_2d_pose(self.ax_2ds_canonical_3d_same_z[cam_name], , normalize=True, dataset='h36m')
+                clear_axes(self.ax_2ds[cam_name])
                 draw_2d_pose(self.ax_2ds[cam_name], pose_2d_norms, normalize=True, dataset='h36m')
             
             

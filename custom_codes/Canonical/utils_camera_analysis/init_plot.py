@@ -31,15 +31,18 @@ def init_plot(self):
             self.fig_2d = plt.figure(2) 
             self.fig_2d.clear()
             self.ax_2ds = {}
-            self.ax_2ds_canonical = {}
-            self.ax_2ds_input_canonical = {}
+            self.ax_2ds_canonical_3d_same_dist = {}
+            self.ax_2ds_canonical_3d_same_z = {}
+            self.ax_2ds_input_centering = {}
+            
             if self.select_cam.value == 'total':
                 for cam_name, loc in zip(self.cameras.keys(), [None, 221, 222, 223, 224]):
                     if cam_name == 'custom': continue
                     self.ax_2ds[cam_name] = axes_2d(self.fig_2d, loc=loc, normalize=True, show_axis=False, title=cam_name)
             else:
-                self.ax_2ds[self.select_cam.value] = axes_2d(self.fig_2d, loc=131, normalize=True, show_axis=False, title=self.select_cam.value)
-                self.ax_2ds_canonical[self.select_cam.value] = axes_2d(self.fig_2d, loc=132, normalize=True, show_axis=False, title=self.select_cam.value+'_canonical')
-                self.ax_2ds_input_canonical[self.select_cam.value] = axes_2d(self.fig_2d, loc=133, normalize=True, show_axis=False, title=self.select_cam.value+'_input_canonical')
+                self.ax_2ds[self.select_cam.value] = axes_2d(self.fig_2d, loc=221, normalize=True, show_axis=False, title=self.select_cam.value)
+                self.ax_2ds_canonical_3d_same_dist[self.select_cam.value] = axes_2d(self.fig_2d, loc=222, normalize=True, show_axis=False, title=self.select_cam.value+'_canonical_3d_same_dist')
+                self.ax_2ds_input_centering[self.select_cam.value] = axes_2d(self.fig_2d, loc=223, normalize=True, show_axis=False, title=self.select_cam.value+'_input_centering')
+                self.ax_2ds_canonical_3d_same_z[self.select_cam.value] = axes_2d(self.fig_2d, loc=224, normalize=True, show_axis=False, title=self.select_cam.value+'_canonical_3d_same_z')
                 
             f = plt.show()

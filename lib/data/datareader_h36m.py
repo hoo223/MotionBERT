@@ -87,6 +87,11 @@ class DataReaderH36M(object):
                 test_labels[idx, :, 2:] = test_labels[idx, :, 2:] / res_w * 2
         elif self.gt_mode == 'world_3d' or self.gt_mode == 'cam_3d':
             pass
+        elif self.gt_mode == 'joint_2d_from_canonical_3d':
+            temp_input_mode = self.input_mode
+            self.input_mode = 'joint_2d_from_canonical_3d'
+            train_labels, test_labels = self.read_2d()
+            self.input_mode = temp_input_mode
         else:
             raise ValueError("Invalid mode for read_3d: {}".format(self.gt_mode))
             

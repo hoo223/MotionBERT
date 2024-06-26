@@ -150,7 +150,6 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
             gt_dh_model = BatchDHModel(batch_gt, batch_size=batch_size, num_frames=args.clip_len, head=True)
             gt_dh_angle = gt_dh_model.get_batch_appendage_angles() # (B, F, 16)
             gt_dh_length = gt_dh_model.get_batch_appendage_length()[:, 0, :] # (B, 8)
-
         elif 'DHDSTformer_limb' in args.model:
             predicted_3d_pos, pred_limb_pos = inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso)
         elif 'DHDSTformer_torso' in args.model:
@@ -162,7 +161,6 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
             batch_upper_origin, batch_upper_R = get_batch_upper_torso_frame_from_pose(batch_gt)
             batch_lower_quat = matrix_to_quaternion(batch_lower_R)
             batch_upper_quat = matrix_to_quaternion(batch_upper_R)
-            
         elif 'DHDSTformer_torso2' in args.model:
             pred_torso, batch_gt_torso = inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso)
         elif 'DHDST_onevec' in args.model:
@@ -262,6 +260,11 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
                 loss_dh_length = nn.MSELoss()(pred_dh_length, gt_dh_length)
                 loss_total += args.lambda_dh_length * loss_dh_length
                 losses['dh_length'].update(loss_dh_length.item(), batch_size)
+            if args.lambda_canonical_2d_residual > 0:
+                if batch_gt.shape[-1] == 3: batch_gt = batch_gt[..., :2]
+                loss_canonical_2d_residual = loss_mpjpe(predicted_3d_pos, batch_gt)
+                loss_total += args.lambda_canonical_2d_residual * loss_canonical_2d_residual
+                losses['canonical_2d_residual'].update(loss_canonical_2d_residual.item(), batch_size)
             losses['total'].update(loss_total.item(), batch_size)
         else:
             loss_2d_proj = loss_2d_weighted(predicted_3d_pos, batch_gt, conf)
@@ -283,25 +286,30 @@ def preprocess_train(args, batch_input, batch_gt, has_3d, has_gt):
         if torch.cuda.is_available():
             batch_input = batch_input.cuda()
             batch_gt = batch_gt.cuda()
+        
+        # Train input pre-processing
         if args.no_conf:
             batch_input = batch_input[:, :, :, :2]
         if not has_3d:
             conf = copy.deepcopy(batch_input[:,:,:,2:])    # For 2D data, weight/confidence is at the last channel
         else:
             conf = None
-        if args.rootrel:
-            batch_gt = batch_gt - batch_gt[:,:,0:1,:] # move the pelvis to the origin for all frames
-        else:
-            batch_gt[:,:,:,2] = batch_gt[:,:,:,2] - batch_gt[:,0:1,0:1,2] # Place the depth of first frame root to 0. -> 첫번째 프레임의 depth를 0으로 설정
-        if args.mask or args.noise:
+        if args.mask or args.noise: # input augmentation for noise
             batch_input = args.aug.augment2D(batch_input, noise=(args.noise and has_gt), mask=args.mask)
         if args.canonical:
             batch_input = batch_input - batch_input[:, :, 0:1, :] # root-relative
-            batch_gt = batch_gt - batch_gt[:, :, 0:1, :]
         if args.norm_input_scale:
             B, F, J, C = batch_input.shape
             scale = torch.norm(batch_input[..., :2].reshape(B, F, 1, 34), dim=-1, keepdim=True)
             batch_input = batch_input / scale
+        
+        # Train GT pre-processing
+        if args.rootrel: # root-relative 3D pose를 추론하도록 훈련
+            batch_gt = batch_gt - batch_gt[:,:,0:1,:] # move the pelvis to the origin for all frames
+        else:
+            batch_gt[:,:,:,2] = batch_gt[:,:,:,2] - batch_gt[:,0:1,0:1,2] # Place the depth of first frame root to 0. -> 첫번째 프레임의 depth를 0으로 설정
+        if args.canonical:
+            batch_gt = batch_gt - batch_gt[:, :, 0:1, :]
         if batch_gt.shape[2] == 17:
             batch_gt_torso = batch_gt[:, :, [0, 1, 4, 7, 8, 9, 10, 11, 14], :]
             batch_gt_limb = batch_gt[:, :, [2, 3, 5, 6, 12, 13, 15, 16], :]
@@ -380,26 +388,27 @@ def inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso):
     
 def generate_loss_dict(args):
     losses = {}
-    if args.lambda_3d_pos > 0:        losses['3d_pos'] = AverageMeter()
-    if args.lambda_scale > 0:         losses['3d_scale'] = AverageMeter()
-    if args.lambda_3d_velocity > 0:   losses['3d_vel'] = AverageMeter()
-    if args.lambda_limb_pos > 0:      losses['3d_pos_limb'] = AverageMeter()
-    if args.lambda_limb_scale > 0:    losses['3d_scale_limb'] = AverageMeter()
-    if args.lambda_limb_velocity > 0: losses['3d_vel_limb'] = AverageMeter()
-    if args.lambda_torso_pos > 0:     losses['3d_pos_torso'] = AverageMeter()
-    if args.lambda_lower_frame_R > 0: losses['lower_frame_R'] = AverageMeter()
-    if args.lambda_upper_frame_R > 0: losses['upper_frame_R'] = AverageMeter()
-    if args.lambda_lg > 0:            losses['lg'] = AverageMeter()
-    if args.lambda_lv > 0:            losses['lv'] = AverageMeter()
-    if args.lambda_a > 0:             losses['angle'] = AverageMeter()
-    if args.lambda_av > 0:            losses['angle_vel'] = AverageMeter()
-    if args.lambda_sym > 0:           losses['sym'] = AverageMeter()
-    if args.lambda_root_point > 0:    losses['root_point'] = AverageMeter()
-    if args.lambda_length > 0:        losses['length'] = AverageMeter()
-    if args.lambda_dh_angle > 0:      losses['dh_angle'] = AverageMeter()
-    if args.lambda_onevec_pos:        losses['onevec_pos'] = AverageMeter()
-    if args.lambda_dh_angle2 > 0:     losses['dh_angle2'] = AverageMeter()
-    if args.lambda_dh_length > 0:     losses['dh_length'] = AverageMeter()
+    if args.lambda_3d_pos > 0:                losses['3d_pos'] = AverageMeter()
+    if args.lambda_scale > 0:                 losses['3d_scale'] = AverageMeter()
+    if args.lambda_3d_velocity > 0:           losses['3d_vel'] = AverageMeter()
+    if args.lambda_limb_pos > 0:              losses['3d_pos_limb'] = AverageMeter()
+    if args.lambda_limb_scale > 0:            losses['3d_scale_limb'] = AverageMeter()
+    if args.lambda_limb_velocity > 0:         losses['3d_vel_limb'] = AverageMeter()
+    if args.lambda_torso_pos > 0:             losses['3d_pos_torso'] = AverageMeter()
+    if args.lambda_lower_frame_R > 0:         losses['lower_frame_R'] = AverageMeter()
+    if args.lambda_upper_frame_R > 0:         losses['upper_frame_R'] = AverageMeter()
+    if args.lambda_lg > 0:                    losses['lg'] = AverageMeter()
+    if args.lambda_lv > 0:                    losses['lv'] = AverageMeter()
+    if args.lambda_a > 0:                     losses['angle'] = AverageMeter()
+    if args.lambda_av > 0:                    losses['angle_vel'] = AverageMeter()
+    if args.lambda_sym > 0:                   losses['sym'] = AverageMeter()
+    if args.lambda_root_point > 0:            losses['root_point'] = AverageMeter()
+    if args.lambda_length > 0:                losses['length'] = AverageMeter()
+    if args.lambda_dh_angle > 0:              losses['dh_angle'] = AverageMeter()
+    if args.lambda_onevec_pos:                losses['onevec_pos'] = AverageMeter()
+    if args.lambda_dh_angle2 > 0:             losses['dh_angle2'] = AverageMeter()
+    if args.lambda_dh_length > 0:             losses['dh_length'] = AverageMeter()
+    if args.lambda_canonical_2d_residual > 0: losses['canonical_2d_residual'] = AverageMeter()
     losses['total'] = AverageMeter()
     losses['2d_proj'] = AverageMeter()
     return losses
@@ -412,26 +421,27 @@ def update_train_writer(args, train_writer, losses, e1, e2, lr, epoch, total_res
     train_writer.add_scalar('lr', lr, epoch + 1)
     train_writer.add_scalar('loss_total', losses['total'].avg, epoch + 1)
     train_writer.add_scalar('loss_2d_proj', losses['2d_proj'].avg, epoch + 1)
-    if args.lambda_3d_pos > 0:        train_writer.add_scalar('loss_3d_pos', losses['3d_pos'].avg, epoch + 1)
-    if args.lambda_scale > 0:         train_writer.add_scalar('loss_3d_scale', losses['3d_scale'].avg, epoch + 1)
-    if args.lambda_3d_velocity > 0:   train_writer.add_scalar('loss_3d_velocity', losses['3d_vel'].avg, epoch + 1)
-    if args.lambda_limb_pos > 0:      train_writer.add_scalar('loss_3d_pos_limb', losses['3d_pos_limb'].avg, epoch + 1)
-    if args.lambda_limb_scale > 0:    train_writer.add_scalar('loss_3d_scale_limb', losses['3d_scale_limb'].avg, epoch + 1)
-    if args.lambda_limb_velocity > 0: train_writer.add_scalar('loss_3d_velocity_limb', losses['3d_vel_limb'].avg, epoch + 1)
-    if args.lambda_torso_pos > 0:     train_writer.add_scalar('loss_3d_pos_torso', losses['3d_pos_torso'].avg, epoch + 1)
-    if args.lambda_lower_frame_R > 0: train_writer.add_scalar('loss_lower_frame_R', losses['lower_frame_R'].avg, epoch + 1)
-    if args.lambda_upper_frame_R > 0: train_writer.add_scalar('loss_upper_frame_R', losses['upper_frame_R'].avg, epoch + 1)
-    if args.lambda_lv > 0:            train_writer.add_scalar('loss_lv', losses['lv'].avg, epoch + 1)
-    if args.lambda_lg > 0:            train_writer.add_scalar('loss_lg', losses['lg'].avg, epoch + 1)
-    if args.lambda_a > 0:             train_writer.add_scalar('loss_a', losses['angle'].avg, epoch + 1)
-    if args.lambda_av > 0:            train_writer.add_scalar('loss_av', losses['angle_vel'].avg, epoch + 1)
-    if args.lambda_sym > 0:           train_writer.add_scalar('loss_sym', losses['sym'].avg, epoch + 1)
-    if args.lambda_root_point > 0:    train_writer.add_scalar('loss_root_point', losses['root_point'].avg, epoch + 1)
-    if args.lambda_length > 0:        train_writer.add_scalar('loss_length', losses['length'].avg, epoch + 1)
-    if args.lambda_dh_angle > 0:      train_writer.add_scalar('loss_dh_angle', losses['dh_angle'].avg, epoch + 1)
-    if args.lambda_onevec_pos:        train_writer.add_scalar('loss_onevec_pos', losses['onevec_pos'].avg, epoch + 1)
-    if args.lambda_dh_angle2 > 0:     train_writer.add_scalar('loss_dh_angle2', losses['dh_angle2'].avg, epoch + 1)
-    if args.lambda_dh_length > 0:     train_writer.add_scalar('loss_dh_length', losses['dh_length'].avg, epoch + 1)
+    if args.lambda_3d_pos > 0:                train_writer.add_scalar('loss_3d_pos', losses['3d_pos'].avg, epoch + 1)
+    if args.lambda_scale > 0:                 train_writer.add_scalar('loss_3d_scale', losses['3d_scale'].avg, epoch + 1)
+    if args.lambda_3d_velocity > 0:           train_writer.add_scalar('loss_3d_velocity', losses['3d_vel'].avg, epoch + 1)
+    if args.lambda_limb_pos > 0:              train_writer.add_scalar('loss_3d_pos_limb', losses['3d_pos_limb'].avg, epoch + 1)
+    if args.lambda_limb_scale > 0:            train_writer.add_scalar('loss_3d_scale_limb', losses['3d_scale_limb'].avg, epoch + 1)
+    if args.lambda_limb_velocity > 0:         train_writer.add_scalar('loss_3d_velocity_limb', losses['3d_vel_limb'].avg, epoch + 1)
+    if args.lambda_torso_pos > 0:             train_writer.add_scalar('loss_3d_pos_torso', losses['3d_pos_torso'].avg, epoch + 1)
+    if args.lambda_lower_frame_R > 0:         train_writer.add_scalar('loss_lower_frame_R', losses['lower_frame_R'].avg, epoch + 1)
+    if args.lambda_upper_frame_R > 0:         train_writer.add_scalar('loss_upper_frame_R', losses['upper_frame_R'].avg, epoch + 1)
+    if args.lambda_lv > 0:                    train_writer.add_scalar('loss_lv', losses['lv'].avg, epoch + 1)
+    if args.lambda_lg > 0:                    train_writer.add_scalar('loss_lg', losses['lg'].avg, epoch + 1)
+    if args.lambda_a > 0:                     train_writer.add_scalar('loss_a', losses['angle'].avg, epoch + 1)
+    if args.lambda_av > 0:                    train_writer.add_scalar('loss_av', losses['angle_vel'].avg, epoch + 1)
+    if args.lambda_sym > 0:                   train_writer.add_scalar('loss_sym', losses['sym'].avg, epoch + 1)
+    if args.lambda_root_point > 0:            train_writer.add_scalar('loss_root_point', losses['root_point'].avg, epoch + 1)
+    if args.lambda_length > 0:                train_writer.add_scalar('loss_length', losses['length'].avg, epoch + 1)
+    if args.lambda_dh_angle > 0:              train_writer.add_scalar('loss_dh_angle', losses['dh_angle'].avg, epoch + 1)
+    if args.lambda_onevec_pos:                train_writer.add_scalar('loss_onevec_pos', losses['onevec_pos'].avg, epoch + 1)
+    if args.lambda_dh_angle2 > 0:             train_writer.add_scalar('loss_dh_angle2', losses['dh_angle2'].avg, epoch + 1)
+    if args.lambda_dh_length > 0:             train_writer.add_scalar('loss_dh_length', losses['dh_length'].avg, epoch + 1)
+    if args.lambda_canonical_2d_residual > 0: train_writer.add_scalar('loss_canon_2d_residual', losses['canonical_2d_residual'].avg, epoch + 1)
     if 'arms' in args.part_list:
         arm_mpjpe = np.mean([np.mean(total_result_dict['arms']['results'][key]) for key in total_result_dict['arms']['results'].keys()])
         arm_mpjpe_procrustes = np.mean([np.mean(total_result_dict['arms']['results_procrustes'][key]) for key in total_result_dict['arms']['results_procrustes'].keys()])

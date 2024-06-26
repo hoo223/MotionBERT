@@ -88,6 +88,8 @@ def check_args(args, opts):
     except: args.lambda_dh_angle2 = 0.0
     try: test = args.lambda_dh_length
     except: args.lambda_dh_length = 0.0
+    try: test = args.lambda_canonical_2d_residual
+    except: args.lambda_canonical_2d_residual = 0.0
     # canonical input
     try: test = args.canonical
     except: args.canonical = False
@@ -114,6 +116,11 @@ def check_args(args, opts):
     # print summary table
     try: test = args.print_summary_table
     except: args.print_summary_table = True
+    # model input, output dim
+    try: test = args.dim_in
+    except: args.dim_in = 3
+    try: test = args.dim_out
+    except: args.dim_out = 3
     
     return args, opts
     

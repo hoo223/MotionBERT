@@ -3,7 +3,6 @@ train_2d: False
 no_eval: False
 finetune: False
 partial_train: null
-canonical: False
 test_run: False
 
 # Traning 
@@ -20,7 +19,7 @@ part_list: ['whole']
 denormalize_output: False
 
 # Model
-model: 'MB_train_h36m_gt_cam_no_factor_input_from_canonical_3d_fixed_dist_tr_s1_ts_s5678'
+model: 'MB_train_h36m_gt_cam_no_factor_s15678_tr_54138969_ts_others'
 maxlen: 243
 dim_feat: 512
 mlp_ratio: 2
@@ -31,8 +30,8 @@ att_fuse: True
 
 # Data
 data_root: data/motion3d/MB3D_f243s81/
-subset_list: [H36M-GT-CAM_NO_FACTOR-TR-INPUT_FROM_3D_CANONICAL_FIXED_DIST_S1_TS_S5678]
-dt_file: h36m_gt_canonical_3d_fixed_dist_tr_s1_ts_s5678.pkl
+subset_list: [H36M-GT-CAM_NO_FACTOR-S15678_TR_54138969_TS_OTHERS]
+dt_file: h36m_gt_s15678_tr_54138969_ts_others.pkl
 clip_len: 243
 data_stride: 81
 rootrel: True

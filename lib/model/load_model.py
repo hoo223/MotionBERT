@@ -9,6 +9,7 @@ from lib.model.DHDSTformer import DHDSTformer_total, DHDSTformer_total2, DHDSTfo
     DHDSTformer_torso, DHDSTformer_torso2, \
     DHDSTformer_torso_limb, \
     DHDSTformer_onevec
+from lib.model.CanonDSTformer import CanonDSTformer1
 
 def load_model(opts, args):
     if opts.pretrained_backbone != '':

@@ -1,4 +1,24 @@
 # training
 python train_custom.py \
---config configs/pose3d/DHDSTformer_torso2_h36m_feat128.yaml \
---checkpoint checkpoint/pose3d/DHDSTformer_torso2_h36m_feat128
+--config configs/canonical2d/CanonDSTformer1_train_h36m_gt_tr_s1_ts_s5678_trial1.yaml \
+--checkpoint checkpoint/canonical2d/CanonDSTformer1_train_h36m_gt_tr_s1_ts_s5678_trial1
+
+python train_custom.py \
+--config configs/canonical2d/CanonDSTformer1_train_h36m_gt_tr_s1_ts_s5678_trial5.yaml \
+--checkpoint checkpoint/canonical2d/CanonDSTformer1_train_h36m_gt_tr_s1_ts_s5678_trial5
+
+python train_custom.py \
+--config configs/canonical2d/CanonDSTformer1_train_h36m_gt_tr_s1_ts_s5678_trial2.yaml \
+--checkpoint checkpoint/canonical2d/CanonDSTformer1_train_h36m_gt_tr_s1_ts_s5678_trial2
+
+python train_custom.py \
+--config configs/canonical2d/CanonDSTformer1_train_h36m_gt_tr_s1_ts_s5678_trial3.yaml \
+--checkpoint checkpoint/canonical2d/CanonDSTformer1_train_h36m_gt_tr_s1_ts_s5678_trial3
+
+python train_custom.py \
+--config configs/canonical2d/CanonDSTformer1_train_h36m_gt_tr_s1_ts_s5678_trial4.yaml \
+--checkpoint checkpoint/canonical2d/CanonDSTformer1_train_h36m_gt_tr_s1_ts_s5678_trial4
+
+tensorboard --loddir=checkpoint/canonical2d/CanonDSTformer1_train_h36m_gt_tr_s1_ts_s5678_trial1/logs,checkpoint/canonical2d/CanonDSTformer1_train_h36m_gt_tr_s1_ts_s5678_trial5/logs,checkpoint/canonical2d/CanonDSTformer1_train_h36m_gt_tr_s1_ts_s5678_trial2/logs,checkpoint/canonical2d/CanonDSTformer1_train_h36m_gt_tr_s1_ts_s5678_trial3/logs
+
+tensorboard --loddir=checkpoint/canonical2d/CanonDSTformer1_train_h36m_gt_tr_s1_ts_s5678_trial4/logs
