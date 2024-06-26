@@ -8,6 +8,9 @@ import os
 import numpy as np
 import random
 import torch
+import wandb
+wandb.login()
+
 
 from lib.utils.learning import * # load_backbone
 from lib.utils.args import get_opts_args
@@ -25,20 +28,54 @@ def set_random_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+    
+def get_project_name(args):
+    item = args.model
+    project_name = ''
+    if 'CanonDSTformer' in item:
+        project_name += 'Canonicalization_Network_'
+    if 'h36m' in item:
+        project_name += 'H36M'
+        if '_gt' in item:
+            project_name += '_GT'
+        else:
+            project_name += '-SH'
+    elif 'fit3d' in item:
+        project_name += 'FIT3D'
+    elif 'kookmin' in item:
+        project_name += 'KOOKMIN'
+        
+    if '_ts_s4710' in item:
+        project_name += '-TS_S4710'
+    elif '_tr_s1_ts_s5678' in item:
+        project_name += '-TR_S1_TS_S5678'
+    elif '_s15678_tr_54138969_ts_others' in item:
+        project_name += '-S15678_TR_54138969_TS_OTHERS'
+    
+    return project_name
 
-def main(args, opts):
+def main(args, opts, run):
     # Load dataset
     train_loader_3d, test_loader, posetrack_loader_2d, instav_loader_2d, datareader = load_dataset(args)
     # Load model and checkpoint
     model_pos, chk_filename, checkpoint = load_model(opts, args)
     # main process
     if not opts.evaluate: # Training
-        train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2d, instav_loader_2d, test_loader, datareader)
+        train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2d, instav_loader_2d, test_loader, datareader, run)
     elif opts.evaluate: # Evaluation
-        e1, e2, results_all, inputs_all, gts_all, total_result_dict = evaluate(args, model_pos, test_loader, datareader, checkpoint)
+        e1, e2, results_all, inputs_all, gts_all, total_result_dict = evaluate(args, model_pos, test_loader, datareader, checkpoint, run)
 
 if __name__ == "__main__":
     args, opts = get_opts_args()
     set_random_seed(opts.seed)
     print(args)
-    main(args, opts)
+    
+    run = wandb.init(
+        project=get_project_name(args),
+        config=args,
+        name=args.model,
+    )
+    main(args, opts, run)
+    wandb.finish()
+    
+    

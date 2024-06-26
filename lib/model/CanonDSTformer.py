@@ -333,7 +333,7 @@ class CanonDSTformer1(nn.Module):
 
     def forward(self, x, return_rep=False):   
         B, F, J, C = x.shape # Batch, Frame, Joint, Channel
-        input_centered = (x - x[:, :, 0, :]) # Input centering
+        input_centered = (x - x[:, :, 0:1, :]) # Input centering
         
         x = x.reshape(-1, J, C) # Batch*Frame, Joint, Channel
         BF = x.shape[0]

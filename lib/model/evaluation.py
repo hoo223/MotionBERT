@@ -5,7 +5,7 @@ import prettytable
 from lib.model.loss import *
 from lib.utils.utils_data import flip_data
 
-def evaluate(args, model_pos, test_loader, datareader, checkpoint, only_one_batch=False):
+def evaluate(args, model_pos, test_loader, datareader, checkpoint, run, only_one_batch=False):
     print('INFO: Testing')
     model_pos.eval()  
     if 'DHDST_onevec' in args.model:
@@ -23,10 +23,10 @@ def evaluate(args, model_pos, test_loader, datareader, checkpoint, only_one_batc
         results_all, inputs_all, gts_all = inference_eval(args, model_pos, test_loader, datareader, only_one_batch)
         # calculate evaluation metric
         if 'CANONICALIZATION' in args.subset_list[0]: # for canonicalization network
-            e1, total_result_dict = calculate_eval_metric_canonicalization(args, inputs_all, results_all, gts_all, datareader)
+            e1, total_result_dict = calculate_eval_metric_canonicalization(args, inputs_all, results_all, gts_all, datareader, run)
             e2 = -1
         else:
-            e1, e2, total_result_dict = calculate_eval_metric(args, results_all, datareader)
+            e1, e2, total_result_dict = calculate_eval_metric(args, results_all, datareader, run)
     
     return e1, e2, results_all, inputs_all, gts_all, total_result_dict
 
@@ -169,7 +169,7 @@ def get_clip_info(datareader, results_all):
 
     return num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions
 
-def calculate_eval_metric(args, results_all, datareader):
+def calculate_eval_metric(args, results_all, datareader, run):
     num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions = get_clip_info(datareader, results_all)
 
     total_result_dict = {}
@@ -331,12 +331,13 @@ def calculate_eval_metric(args, results_all, datareader):
         print('Protocol #1 Error (MPJPE):', e1_part, 'mm')
         print('Protocol #2 Error (P-MPJPE):', e2_part, 'mm')
         print('----------------------------------------')
+        run.log({f'e1_{part}': e1_part, f'e2_{part}': e2_part})
         if part == args.eval_part:
             e1 = e1_part
             e2 = e2_part
     return e1, e2, total_result_dict
 
-def calculate_eval_metric_canonicalization(args, inputs_all, results_all, gts_all, datareader):
+def calculate_eval_metric_canonicalization(args, inputs_all, results_all, gts_all, datareader, run):
     num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions = get_clip_info(datareader, results_all)
 
     total_result_dict = {}

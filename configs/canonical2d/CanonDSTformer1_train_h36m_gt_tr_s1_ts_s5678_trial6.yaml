@@ -20,6 +20,7 @@ part_list: ['whole']
 denormalize_output: False
 
 # Model
+backbone: 'CanonDSTformer1'
 dim_in: 2
 dim_out: 2
 model: 'CanonDSTformer1_train_h36m_gt_tr_s1_ts_s5678'

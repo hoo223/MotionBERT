@@ -28,7 +28,7 @@ def save_checkpoint(chk_path, epoch, start_epoch, lr, optimizer, model_pos, min_
         'min_loss' : min_loss
     }, chk_path)
 
-def train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2d, instav_loader_2d, test_loader, datareader):
+def train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2d, instav_loader_2d, test_loader, datareader, run):
     try:
         os.makedirs(opts.checkpoint)
     except OSError as e:
@@ -98,11 +98,11 @@ def train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2
         if args.no_eval:
             print('[%d] time %.2f lr %f 3d_train %f' % (epoch + 1, elapsed, lr, loss_print))
         else:
-            e1, e2, results_all, inputs_all, gts_all, total_result_dict = evaluate(args, model_pos, test_loader, datareader, checkpoint)
+            e1, e2, results_all, inputs_all, gts_all, total_result_dict = evaluate(args, model_pos, test_loader, datareader, checkpoint, run=run)
             print('[%d] time %.2f lr %f 3d_train %f e1 %f e2 %f' % (epoch + 1, elapsed, lr, loss_print, e1, e2))
 
         # Update tensorboard
-        train_writer = update_train_writer(args, train_writer, losses, e1, e2, lr, epoch, total_result_dict)
+        train_writer = update_train_writer(args, train_writer, losses, e1, e2, lr, epoch, total_result_dict, run)
             
         # Decay learning rate exponentially
         lr *= lr_decay
@@ -413,7 +413,7 @@ def generate_loss_dict(args):
     losses['2d_proj'] = AverageMeter()
     return losses
 
-def update_train_writer(args, train_writer, losses, e1, e2, lr, epoch, total_result_dict):
+def update_train_writer(args, train_writer, losses, e1, e2, lr, epoch, total_result_dict, run):
     # e1: MPJPE
     # e2: PA-MPJPE
     train_writer.add_scalar('Error P1', e1, epoch + 1)
@@ -421,36 +421,81 @@ def update_train_writer(args, train_writer, losses, e1, e2, lr, epoch, total_res
     train_writer.add_scalar('lr', lr, epoch + 1)
     train_writer.add_scalar('loss_total', losses['total'].avg, epoch + 1)
     train_writer.add_scalar('loss_2d_proj', losses['2d_proj'].avg, epoch + 1)
-    if args.lambda_3d_pos > 0:                train_writer.add_scalar('loss_3d_pos', losses['3d_pos'].avg, epoch + 1)
-    if args.lambda_scale > 0:                 train_writer.add_scalar('loss_3d_scale', losses['3d_scale'].avg, epoch + 1)
-    if args.lambda_3d_velocity > 0:           train_writer.add_scalar('loss_3d_velocity', losses['3d_vel'].avg, epoch + 1)
-    if args.lambda_limb_pos > 0:              train_writer.add_scalar('loss_3d_pos_limb', losses['3d_pos_limb'].avg, epoch + 1)
-    if args.lambda_limb_scale > 0:            train_writer.add_scalar('loss_3d_scale_limb', losses['3d_scale_limb'].avg, epoch + 1)
-    if args.lambda_limb_velocity > 0:         train_writer.add_scalar('loss_3d_velocity_limb', losses['3d_vel_limb'].avg, epoch + 1)
-    if args.lambda_torso_pos > 0:             train_writer.add_scalar('loss_3d_pos_torso', losses['3d_pos_torso'].avg, epoch + 1)
-    if args.lambda_lower_frame_R > 0:         train_writer.add_scalar('loss_lower_frame_R', losses['lower_frame_R'].avg, epoch + 1)
-    if args.lambda_upper_frame_R > 0:         train_writer.add_scalar('loss_upper_frame_R', losses['upper_frame_R'].avg, epoch + 1)
-    if args.lambda_lv > 0:                    train_writer.add_scalar('loss_lv', losses['lv'].avg, epoch + 1)
-    if args.lambda_lg > 0:                    train_writer.add_scalar('loss_lg', losses['lg'].avg, epoch + 1)
-    if args.lambda_a > 0:                     train_writer.add_scalar('loss_a', losses['angle'].avg, epoch + 1)
-    if args.lambda_av > 0:                    train_writer.add_scalar('loss_av', losses['angle_vel'].avg, epoch + 1)
-    if args.lambda_sym > 0:                   train_writer.add_scalar('loss_sym', losses['sym'].avg, epoch + 1)
-    if args.lambda_root_point > 0:            train_writer.add_scalar('loss_root_point', losses['root_point'].avg, epoch + 1)
-    if args.lambda_length > 0:                train_writer.add_scalar('loss_length', losses['length'].avg, epoch + 1)
-    if args.lambda_dh_angle > 0:              train_writer.add_scalar('loss_dh_angle', losses['dh_angle'].avg, epoch + 1)
-    if args.lambda_onevec_pos:                train_writer.add_scalar('loss_onevec_pos', losses['onevec_pos'].avg, epoch + 1)
-    if args.lambda_dh_angle2 > 0:             train_writer.add_scalar('loss_dh_angle2', losses['dh_angle2'].avg, epoch + 1)
-    if args.lambda_dh_length > 0:             train_writer.add_scalar('loss_dh_length', losses['dh_length'].avg, epoch + 1)
-    if args.lambda_canonical_2d_residual > 0: train_writer.add_scalar('loss_canon_2d_residual', losses['canonical_2d_residual'].avg, epoch + 1)
+    run.log({"Error P1": e1, "Error P2": e2, "lr": lr, "loss_total": losses['total'].avg, "loss_2d_proj": losses['2d_proj'].avg})
+    if args.lambda_3d_pos > 0:                
+        train_writer.add_scalar('loss_3d_pos', losses['3d_pos'].avg, epoch + 1)
+        run.log({"loss_3d_pos": losses['3d_pos'].avg})
+    if args.lambda_scale > 0:                 
+        train_writer.add_scalar('loss_3d_scale', losses['3d_scale'].avg, epoch + 1)
+        run.log({"loss_3d_scale": losses['3d_scale'].avg})
+    if args.lambda_3d_velocity > 0:           
+        train_writer.add_scalar('loss_3d_velocity', losses['3d_vel'].avg, epoch + 1)
+        run.log({"loss_3d_velocity": losses['3d_vel'].avg})
+    if args.lambda_limb_pos > 0:              
+        train_writer.add_scalar('loss_3d_pos_limb', losses['3d_pos_limb'].avg, epoch + 1)
+        run.log({"loss_3d_pos_limb": losses['3d_pos_limb'].avg})
+    if args.lambda_limb_scale > 0:            
+        train_writer.add_scalar('loss_3d_scale_limb', losses['3d_scale_limb'].avg, epoch + 1)
+        run.log({"loss_3d_scale_limb": losses['3d_scale_limb'].avg})
+    if args.lambda_limb_velocity > 0:         
+        train_writer.add_scalar('loss_3d_velocity_limb', losses['3d_vel_limb'].avg, epoch + 1)
+        run.log({"loss_3d_velocity_limb": losses['3d_vel_limb'].avg})
+    if args.lambda_torso_pos > 0:             
+        train_writer.add_scalar('loss_3d_pos_torso', losses['3d_pos_torso'].avg, epoch + 1)
+        run.log({"loss_3d_pos_torso": losses['3d_pos_torso'].avg})
+    if args.lambda_lower_frame_R > 0:         
+        train_writer.add_scalar('loss_lower_frame_R', losses['lower_frame_R'].avg, epoch + 1)
+        run.log({"loss_lower_frame_R": losses['lower_frame_R'].avg})
+    if args.lambda_upper_frame_R > 0:         
+        train_writer.add_scalar('loss_upper_frame_R', losses['upper_frame_R'].avg, epoch + 1)
+        run.log({"loss_upper_frame_R": losses['upper_frame_R'].avg})
+    if args.lambda_lv > 0:                    
+        train_writer.add_scalar('loss_lv', losses['lv'].avg, epoch + 1)
+        run.log({"loss_lv": losses['lv'].avg})
+    if args.lambda_lg > 0:                    
+        train_writer.add_scalar('loss_lg', losses['lg'].avg, epoch + 1)
+        run.log({"loss_lg": losses['lg'].avg})
+    if args.lambda_a > 0:                     
+        train_writer.add_scalar('loss_a', losses['angle'].avg, epoch + 1)
+        run.log({"loss_a": losses['angle'].avg})
+    if args.lambda_av > 0:                    
+        train_writer.add_scalar('loss_av', losses['angle_vel'].avg, epoch + 1)
+        run.log({"loss_av": losses['angle_vel'].avg})
+    if args.lambda_sym > 0:                   
+        train_writer.add_scalar('loss_sym', losses['sym'].avg, epoch + 1)
+        run.log({"loss_sym": losses['sym'].avg})
+    if args.lambda_root_point > 0:            
+        train_writer.add_scalar('loss_root_point', losses['root_point'].avg, epoch + 1)
+        run.log({"loss_root_point": losses['root_point'].avg})
+    if args.lambda_length > 0:                
+        train_writer.add_scalar('loss_length', losses['length'].avg, epoch + 1)
+        run.log({"loss_length": losses['length'].avg})
+    if args.lambda_dh_angle > 0:              
+        train_writer.add_scalar('loss_dh_angle', losses['dh_angle'].avg, epoch + 1)
+        run.log({"loss_dh_angle": losses['dh_angle'].avg})
+    if args.lambda_onevec_pos:                
+        train_writer.add_scalar('loss_onevec_pos', losses['onevec_pos'].avg, epoch + 1)
+        run.log({"loss_onevec_pos": losses['onevec_pos'].avg})
+    if args.lambda_dh_angle2 > 0:             
+        train_writer.add_scalar('loss_dh_angle2', losses['dh_angle2'].avg, epoch + 1)
+        run.log({"loss_dh_angle2": losses['dh_angle2'].avg})
+    if args.lambda_dh_length > 0:             
+        train_writer.add_scalar('loss_dh_length', losses['dh_length'].avg, epoch + 1)
+        run.log({"loss_dh_length": losses['dh_length'].avg})
+    if args.lambda_canonical_2d_residual > 0: 
+        train_writer.add_scalar('loss_canon_2d_residual', losses['canonical_2d_residual'].avg, epoch + 1)
+        run.log({"loss_canon_2d_residual": losses['canonical_2d_residual'].avg})
     if 'arms' in args.part_list:
         arm_mpjpe = np.mean([np.mean(total_result_dict['arms']['results'][key]) for key in total_result_dict['arms']['results'].keys()])
         arm_mpjpe_procrustes = np.mean([np.mean(total_result_dict['arms']['results_procrustes'][key]) for key in total_result_dict['arms']['results_procrustes'].keys()])
         train_writer.add_scalar('arm P1', arm_mpjpe, epoch + 1)
         train_writer.add_scalar('arm P2', arm_mpjpe_procrustes, epoch + 1)
+        run.log({"arm P1": arm_mpjpe, "arm P2": arm_mpjpe_procrustes})
     if 'legs' in args.part_list:
         leg_mpjpe = np.mean([np.mean(total_result_dict['legs']['results'][key]) for key in total_result_dict['legs']['results'].keys()])
         leg_mpjpe_procrustes = np.mean([np.mean(total_result_dict['legs']['results_procrustes'][key]) for key in total_result_dict['legs']['results_procrustes'].keys()])
         train_writer.add_scalar('leg P1', leg_mpjpe, epoch + 1)
         train_writer.add_scalar('leg P2', leg_mpjpe_procrustes, epoch + 1)
+        run.log({"leg P1": leg_mpjpe, "leg P2": leg_mpjpe_procrustes})
 
     return train_writer
