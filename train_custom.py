@@ -63,18 +63,20 @@ def main(args, opts, run):
     if not opts.evaluate: # Training
         train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2d, instav_loader_2d, test_loader, datareader, run)
     elif opts.evaluate: # Evaluation
-        e1, e2, results_all, inputs_all, gts_all, total_result_dict = evaluate(args, model_pos, test_loader, datareader, checkpoint, run)
+        e1, e2, results_all, inputs_all, gts_all, total_result_dict = evaluate(args, model_pos, test_loader, datareader, checkpoint)
 
 if __name__ == "__main__":
     args, opts = get_opts_args()
     set_random_seed(opts.seed)
     print(args)
-    
-    run = wandb.init(
-        project=get_project_name(args),
-        config=args,
-        name=args.model,
-    )
+    if opts.evaluate == '':
+        run = wandb.init(
+            project=get_project_name(args),
+            config=args,
+            name=args.model,
+        )
+    else:
+        run = None
     main(args, opts, run)
     wandb.finish()
     
