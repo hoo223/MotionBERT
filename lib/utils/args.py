@@ -90,6 +90,8 @@ def check_args(args, opts):
     except: args.lambda_dh_length = 0.0
     try: test = args.lambda_canonical_2d_residual
     except: args.lambda_canonical_2d_residual = 0.0
+    try: test = args.canonical_loss
+    except: args.canonical_loss = 'mpjpe'
     # canonical input
     try: test = args.canonical
     except: args.canonical = False
