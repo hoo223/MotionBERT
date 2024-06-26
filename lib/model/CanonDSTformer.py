@@ -368,3 +368,100 @@ class CanonDSTformer1(nn.Module):
     def get_representation(self, x):
         return self.forward(x, return_rep=True)
     
+class CanonDSTformer2(nn.Module):
+    def __init__(self, dim_in=2, dim_out=2, dim_feat=256, dim_rep=512,
+                 depth=5, num_heads=8, mlp_ratio=4, 
+                 num_joints=17, maxlen=243, 
+                 qkv_bias=True, qk_scale=None, drop_rate=0., attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm, att_fuse=True):
+        super().__init__()
+        self.dim_out = dim_out
+        self.dim_feat = dim_feat
+        self.joints_embed = nn.Linear(dim_in, dim_feat) # FC layer before DSTformer - (BxF, 17, 3) -> (BxF, 17, 256)
+        self.pos_drop = nn.Dropout(p=drop_rate) 
+        dpr = [x.item() for x in torch.linspace(0, drop_path_rate, depth)]  # stochastic depth decay rule
+        # spatial-temporal block
+        self.blocks_st = nn.ModuleList([
+            Block(
+                dim=dim_feat, num_heads=num_heads, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
+                drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i], norm_layer=norm_layer, 
+                st_mode="stage_st")
+            for i in range(depth)])
+        # temporal-spatial block
+        self.blocks_ts = nn.ModuleList([
+            Block(
+                dim=dim_feat, num_heads=num_heads, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
+                drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i], norm_layer=norm_layer, 
+                st_mode="stage_ts")
+            for i in range(depth)])
+        self.norm = norm_layer(dim_feat)
+        if dim_rep:
+            self.pre_logits = nn.Sequential(OrderedDict([ # final pre-FC layer
+                ('fc', nn.Linear(dim_feat, dim_rep)),
+                ('act', nn.Tanh())
+            ]))
+        else:
+            self.pre_logits = nn.Identity()
+        self.head = nn.Linear(dim_rep, dim_out) if dim_out > 0 else nn.Identity() # final FC layer 
+        self.temp_embed = nn.Parameter(torch.zeros(1, maxlen, 1, dim_feat)) # learnable temporal positional encoding - (1, 243, 1, 256)
+        self.pos_embed = nn.Parameter(torch.zeros(1, num_joints, dim_feat)) # learnable spatial positional encoding - (1, 17, 256)
+        trunc_normal_(self.temp_embed, std=.02)
+        trunc_normal_(self.pos_embed, std=.02)
+        self.apply(self._init_weights) # 해당 Module의 모든 sub-module에 인수받은 함수를 적용시켜준다.
+        self.att_fuse = att_fuse
+        if self.att_fuse:
+            self.ts_attn = nn.ModuleList([nn.Linear(dim_feat*2, 2) for i in range(depth)]) # 256x2 -> 2
+            for i in range(depth):
+                self.ts_attn[i].weight.data.fill_(0)
+                self.ts_attn[i].bias.data.fill_(0.5)
+
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            trunc_normal_(m.weight, std=.02)
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.LayerNorm):
+            nn.init.constant_(m.bias, 0)
+            nn.init.constant_(m.weight, 1.0)
+
+    def get_classifier(self):
+        return self.head
+
+    def reset_classifier(self, dim_out, global_pool=''):
+        self.dim_out = dim_out
+        self.head = nn.Linear(self.dim_feat, dim_out) if dim_out > 0 else nn.Identity()
+
+    def forward(self, x, return_rep=False):   
+        B, F, J, C = x.shape # Batch, Frame, Joint, Channel
+        x = x.reshape(-1, J, C) # Batch*Frame, Joint, Channel
+        BF = x.shape[0]
+        x = self.joints_embed(x) # feature embedding - (BxF, 17, 2) -> (BxF, 17, 256)
+        x = x + self.pos_embed # add learnable spatial positional encoding - (BxF, 17, 256) + (1, 17, 256)
+        _, J, C = x.shape # J=17, C=256
+        x = x.reshape(-1, F, J, C) + self.temp_embed[:,:F,:,:] # add learnable temporal positional encoding
+        x = x.reshape(BF, J, C) # (BxF, 17, 256)
+        x = self.pos_drop(x)
+        #alphas = []
+        for idx, (blk_st, blk_ts) in enumerate(zip(self.blocks_st, self.blocks_ts)):
+            x_st = blk_st(x, F) # Block의 forward 함수 -> x: (BxF, 17, 256), F=243, x_st: (BxF, 17, 256)
+            x_ts = blk_ts(x, F) # Block의 forward 함수 -> x: (BxF, 17, 256), F=243, x_ts: (BxF, 17, 256)
+            if self.att_fuse:
+                # eq.(5)
+                att = self.ts_attn[idx] # a learnable linear transformation.
+                alpha = torch.cat([x_st, x_ts], dim=-1) # (BxF, 17, 512)
+                BF, J = alpha.shape[:2]
+                alpha = att(alpha) # (BxF, 17, 512) -> (BxF, 17, 2)
+                alpha = alpha.softmax(dim=-1) 
+                x = x_st * alpha[:,:,0:1] + x_ts * alpha[:,:,1:2] # eq.(4) # (BxF, 17, 256)
+            else:
+                x = (x_st + x_ts)*0.5 # average # (BxF, 17, 256)
+        x = self.norm(x) # layer normalization
+        x = x.reshape(B, F, J, -1) # # (B, F, 17, 256)
+        x = self.pre_logits(x)  # [B, F, J, dim_feat] -> motion representation E or pass
+        if return_rep:
+            return x
+        output = self.head(x) # Canonicalized 2D pose # (N, F, 17, dim_rep) -> (N, F, 17, 2)
+        return output
+
+    def get_representation(self, x):
+        return self.forward(x, return_rep=True)
+    
