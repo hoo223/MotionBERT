@@ -98,7 +98,7 @@ def train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2
         if args.no_eval:
             print('[%d] time %.2f lr %f 3d_train %f' % (epoch + 1, elapsed, lr, loss_print))
         else:
-            e1, e2, results_all, inputs_all, gts_all, total_result_dict = evaluate(args, model_pos, test_loader, datareader, checkpoint, run=run)
+            e1, e2, results_all, inputs_all, gts_all, total_result_dict = evaluate(args, model_pos, test_loader, datareader, checkpoint)
             print('[%d] time %.2f lr %f 3d_train %f e1 %f e2 %f' % (epoch + 1, elapsed, lr, loss_print, e1, e2))
 
         # Update tensorboard
