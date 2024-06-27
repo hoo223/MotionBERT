@@ -9,28 +9,30 @@ from lib.utils.utils_data import split_clips
 random.seed(0)
     
 class DataReaderFIT3D(object):
-    def __init__(self, n_frames, sample_stride, data_stride_train, data_stride_test, read_confidence=True, dt_root = 'data/motion3d', dt_file = 'fit3d.pkl', mode='joint3d_image'):
+    def __init__(self, n_frames, sample_stride, data_stride_train, data_stride_test, read_confidence=True, dt_root = 'data/motion3d', dt_file = 'fit3d.pkl', input_mode='joint_2d', gt_mode='joint3d_image'):
         self.gt_trainset = None
         self.gt_testset = None
         self.split_id_train = None
         self.split_id_test = None
         self.test_hw = None
         self.dt_dataset = read_pkl('%s/%s' % (dt_root, dt_file))
-        self.mode = mode
-        if mode == 'cam_3d':
-            self.dt_dataset['train'][mode] /= 1000
-            self.dt_dataset['test'][mode] /= 1000
         self.n_frames = n_frames
         self.sample_stride = sample_stride
         self.data_stride_train = data_stride_train
         self.data_stride_test = data_stride_test
         self.read_confidence = read_confidence
         self.res_w, self.res_h = 900, 900
+        self.input_mode = input_mode
+        self.gt_mode = gt_mode
+        if gt_mode == 'cam_3d':
+            if abs(self.dt_dataset['train'][gt_mode][:, :, 0].mean()) > 1:
+                self.dt_dataset['train'][gt_mode] /= 1000
+                self.dt_dataset['test'][gt_mode] /= 1000
         
     def read_2d(self):
         #print(self.dt_dataset['train']['joint_2d'].shape, self.dt_dataset['test']['joint_2d'].shape)
-        trainset = self.dt_dataset['train']['joint_2d'][::self.sample_stride, :, :2].astype(np.float32)  # [N, 17, 2]
-        testset = self.dt_dataset['test']['joint_2d'][::self.sample_stride, :, :2].astype(np.float32)  # [N, 17, 2]
+        trainset = self.dt_dataset['train'][self.input_mode][::self.sample_stride, :, :2].astype(np.float32)  # [N, 17, 2]
+        testset = self.dt_dataset['test'][self.input_mode][::self.sample_stride, :, :2].astype(np.float32)  # [N, 17, 2]
         # map to [-1, 1]
         res_w, res_h = self.res_w, self.res_h
         for idx, camera_name in enumerate(self.dt_dataset['train']['camera_name']):
@@ -53,9 +55,9 @@ class DataReaderFIT3D(object):
         return trainset, testset
 
     def read_3d(self):
-        train_labels = self.dt_dataset['train'][self.mode][::self.sample_stride, :, :3].astype(np.float32)  # [N, 17, 3]
-        test_labels = self.dt_dataset['test'][self.mode][::self.sample_stride, :, :3].astype(np.float32)    # [N, 17, 3]
-        if self.mode == 'joint3d_image': # normalize to [-1, 1]
+        train_labels = self.dt_dataset['train'][self.gt_mode][::self.sample_stride, :, :3].astype(np.float32)  # [N, 17, 3]
+        test_labels = self.dt_dataset['test'][self.gt_mode][::self.sample_stride, :, :3].astype(np.float32)    # [N, 17, 3]
+        if self.gt_mode == 'joint3d_image': # normalize to [-1, 1]
             # map to [-1, 1]
             res_w, res_h = self.res_w, self.res_h
             for idx, camera_name in enumerate(self.dt_dataset['train']['camera_name']):
@@ -65,6 +67,16 @@ class DataReaderFIT3D(object):
             for idx, camera_name in enumerate(self.dt_dataset['test']['camera_name']):
                 test_labels[idx, :, :2] = test_labels[idx, :, :2] / res_w * 2 - [1, res_h / res_w]
                 test_labels[idx, :, 2:] = test_labels[idx, :, 2:] / res_w * 2
+        elif self.gt_mode == 'world_3d' or self.gt_mode == 'cam_3d':
+            pass
+        elif self.gt_mode == 'joint_2d_from_canonical_3d':
+            temp_input_mode = self.input_mode
+            self.input_mode = 'joint_2d_from_canonical_3d'
+            train_labels, test_labels = self.read_2d()
+            self.input_mode = temp_input_mode
+        else:
+            raise ValueError("Invalid mode for read_3d: {}".format(self.gt_mode))
+        
         return train_labels, test_labels
     def read_hw(self):
         if self.test_hw is not None:
@@ -108,7 +120,7 @@ class DataReaderFIT3D(object):
     
     def denormalize(self, test_data):
 #       data: (N, n_frames, 51) or data: (N, n_frames, 17, 3)        
-        if self.mode == 'joint3d_image':
+        if self.gt_mode == 'joint3d_image':
             n_clips = test_data.shape[0]
             test_hw = self.get_hw()
             num_keypoints = test_data.shape[2]
@@ -120,7 +132,7 @@ class DataReaderFIT3D(object):
                 data[idx, :, :, :2] = (data[idx, :, :, :2] + np.array([1, res_h / res_w])) * res_w / 2
                 data[idx, :, :, 2:] = data[idx, :, :, 2:] * res_w / 2
             return data # [n_clips, -1, 17, 3]
-        elif self.mode == 'world_3d' or self.mode == 'cam_3d':
+        elif self.gt_mode == 'world_3d' or self.gt_mode == 'cam_3d':
             return test_data
         else:
-            raise ValueError("Invalid mode: {}".format(self.mode))
+            raise ValueError("Invalid mode: {}".format(self.gt_mode))

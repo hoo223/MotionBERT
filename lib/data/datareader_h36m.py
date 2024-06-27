@@ -25,7 +25,7 @@ class DataReaderH36M(object):
         self.gt_mode = gt_mode
         
     def read_2d(self):
-        print(self.dt_dataset['train'][self.input_mode].shape, self.dt_dataset['test'][self.input_mode].shape)
+        #print(self.dt_dataset['train'][self.input_mode].shape, self.dt_dataset['test'][self.input_mode].shape)
         trainset = self.dt_dataset['train'][self.input_mode][::self.sample_stride, :, :2].astype(np.float32)  # [N, 17, 2]
         testset = self.dt_dataset['test'][self.input_mode][::self.sample_stride, :, :2].astype(np.float32)  # [N, 17, 2]
         # map to [-1, 1]
