@@ -267,7 +267,7 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
                 elif args.canonical_loss == 'mse':
                     loss_canonical_2d_residual = nn.MSELoss()(predicted_3d_pos, batch_gt)
                 elif args.canonical_loss == 'weighted_mpjpe1':
-                    conf = batch_gt - batch_gt[:, :, 0:1, :]
+                    conf = torch.norm(batch_gt - batch_gt[:, :, 0:1, :], dim=-1)
                     loss_canonical_2d_residual = weighted_mpjpe(predicted_3d_pos, batch_gt, conf)
                 loss_total += args.lambda_canonical_2d_residual * loss_canonical_2d_residual
                 losses['canonical_2d_residual'].update(loss_canonical_2d_residual.item(), batch_size)
