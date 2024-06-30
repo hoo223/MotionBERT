@@ -29,7 +29,7 @@ print(train_data.shape, test_data.shape)
 assert len(train_data) == len(train_labels)
 assert len(test_data) == len(test_labels)
 
-root_path = "data/motion3d/MB3D_f243s81/POSEAUG_3DHP_GT_CAM_NO_FACTOR_TEST/"
+root_path = "data/motion3d/MB3D_f243s81/3DHP-GT-CAM_NO_FACTOR-POSEAUG_TEST_2929/"
 if not os.path.exists(root_path):
     os.makedirs(root_path)
 
