@@ -85,7 +85,7 @@ class DataReaderH36M(object):
                     assert 0, '%d data item has an invalid camera name' % idx
                 test_labels[idx, :, :2] = test_labels[idx, :, :2] / res_w * 2 - [1, res_h / res_w]
                 test_labels[idx, :, 2:] = test_labels[idx, :, 2:] / res_w * 2
-        elif self.gt_mode == 'world_3d' or self.gt_mode == 'cam_3d':
+        elif self.gt_mode == 'world_3d' or self.gt_mode == 'cam_3d' or self.gt_mode == 'cam_3d_from_canonical_3d':
             pass
         elif self.gt_mode == 'joint_2d_from_canonical_3d':
             temp_input_mode = self.input_mode
@@ -151,7 +151,7 @@ class DataReaderH36M(object):
                 data[idx, :, :, :2] = (data[idx, :, :, :2] + np.array([1, res_h / res_w])) * res_w / 2
                 data[idx, :, :, 2:] = data[idx, :, :, 2:] * res_w / 2
             return data # [n_clips, -1, 17, 3]
-        elif self.gt_mode == 'world_3d' or self.gt_mode == 'cam_3d':
+        elif self.gt_mode == 'world_3d' or self.gt_mode == 'cam_3d' or self.gt_mode == 'cam_3d_from_canonical_3d':
             return test_data
         else:
             raise ValueError("Invalid mode for denormalize: {}".format(self.gt_mode))

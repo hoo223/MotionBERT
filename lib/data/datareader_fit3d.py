@@ -24,10 +24,10 @@ class DataReaderFIT3D(object):
         self.res_w, self.res_h = 900, 900
         self.input_mode = input_mode
         self.gt_mode = gt_mode
-        if gt_mode == 'cam_3d':
-            if abs(self.dt_dataset['train'][gt_mode][:, :, 0].mean()) > 1:
-                self.dt_dataset['train'][gt_mode] /= 1000
-                self.dt_dataset['test'][gt_mode] /= 1000
+        # if gt_mode == 'cam_3d':
+        #     if abs(self.dt_dataset['train'][gt_mode][:, :, 0].mean()) > 1:
+        #         self.dt_dataset['train'][gt_mode] /= 1000
+        #         self.dt_dataset['test'][gt_mode] /= 1000
         
     def read_2d(self):
         #print(self.dt_dataset['train']['joint_2d'].shape, self.dt_dataset['test']['joint_2d'].shape)
@@ -67,7 +67,7 @@ class DataReaderFIT3D(object):
             for idx, camera_name in enumerate(self.dt_dataset['test']['camera_name']):
                 test_labels[idx, :, :2] = test_labels[idx, :, :2] / res_w * 2 - [1, res_h / res_w]
                 test_labels[idx, :, 2:] = test_labels[idx, :, 2:] / res_w * 2
-        elif self.gt_mode == 'world_3d' or self.gt_mode == 'cam_3d':
+        elif self.gt_mode == 'world_3d' or self.gt_mode == 'cam_3d' or self.gt_mode == 'cam_3d_from_canonical_3d':
             pass
         elif self.gt_mode == 'joint_2d_from_canonical_3d':
             temp_input_mode = self.input_mode
@@ -132,7 +132,7 @@ class DataReaderFIT3D(object):
                 data[idx, :, :, :2] = (data[idx, :, :, :2] + np.array([1, res_h / res_w])) * res_w / 2
                 data[idx, :, :, 2:] = data[idx, :, :, 2:] * res_w / 2
             return data # [n_clips, -1, 17, 3]
-        elif self.gt_mode == 'world_3d' or self.gt_mode == 'cam_3d':
+        elif self.gt_mode == 'world_3d' or self.gt_mode == 'cam_3d' or self.gt_mode == 'cam_3d_from_canonical_3d':
             return test_data
         else:
             raise ValueError("Invalid mode: {}".format(self.gt_mode))

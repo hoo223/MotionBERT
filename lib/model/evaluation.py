@@ -137,19 +137,20 @@ def inference_eval(args, model_pos, test_loader, datareader, only_one_batch=Fals
 
     return results_all, inputs_all, gts_all
 
-def get_clip_info(datareader, results_all):
+def get_clip_info(args, datareader, results_all):
     _, split_id_test = datareader.get_split_id() # [range(0, 243) ... range(102759, 103002)] 
     actions = np.array(datareader.dt_dataset['test']['action']) # 103130 ['squat' ...  'kneeup']
     try:
         factors = np.array(datareader.dt_dataset['test']['2.5d_factor']) # 103130 [3.49990559 ... 2.09230852]
     except: # if no factor
         factors = np.ones_like(actions)
-    if datareader.gt_mode == 'joint3d_image':
-        gts = np.array(datareader.dt_dataset['test']['joints_2.5d_image'])
-    elif datareader.gt_mode == 'world_3d' or datareader.gt_mode == 'cam_3d':
-        gts = np.array(datareader.dt_dataset['test'][datareader.gt_mode]) # 103130, 17, 3
-    elif datareader.gt_mode == 'joint_2d_from_canonical_3d':
-        gts = np.array(datareader.dt_dataset['test']['joint_2d_from_canonical_3d'])
+    # if datareader.gt_mode == 'joint3d_image': # default
+    #     gts = np.array(datareader.dt_dataset['test']['joints_2.5d_image'])
+    # elif datareader.gt_mode == 'world_3d' or datareader.gt_mode == 'cam_3d' or datareader.gt_mode == 'joint_2d_from_canonical_3d':
+    #     gts = np.array(datareader.dt_dataset['test'][datareader.gt_mode]) # 103130, 17, 3
+    # elif datareader.gt_mode == 'cam_3d_from_canonical_3d':
+    #     gts = np.array(datareader.dt_dataset['test']['cam_3d'])
+    gts = np.array(datareader.dt_dataset['test'][args.mpjpe_mode])
     sources = np.array(datareader.dt_dataset['test']['source']) # 103130 ['S02_6_squat_001' ... 'S08_4_kneeup_001']
 
     num_test_frames = len(actions)
@@ -170,7 +171,7 @@ def get_clip_info(datareader, results_all):
     return num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions
 
 def calculate_eval_metric(args, results_all, datareader):
-    num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions = get_clip_info(datareader, results_all)
+    num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions = get_clip_info(args, datareader, results_all)
 
     total_result_dict = {}
     pelvis, r_hip, l_hip, torso, neck, l_shoulder, r_shoulder = 0, 1, 4, 7, 8, 11, 14

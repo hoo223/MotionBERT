@@ -54,7 +54,7 @@ def get_project_name(args):
     
     return project_name
 
-def main(args, opts, run):
+def main(args, opts, run=None):
     # Load dataset
     train_loader_3d, test_loader, posetrack_loader_2d, instav_loader_2d, datareader = load_dataset(args)
     # Load model and checkpoint
@@ -70,14 +70,16 @@ if __name__ == "__main__":
     set_random_seed(opts.seed)
     print(args)
     if opts.evaluate == '':
-        run = wandb.init(
-            project=get_project_name(args),
-            config=args,
-            name=args.model,
-        )
+        # run = wandb.init(
+        #     project=get_project_name(args),
+        #     config=args,
+        #     name=args.model,
+        # )
+        run = None
     else:
         run = None
     main(args, opts, run)
-    wandb.finish()
+    if run != None:
+        wandb.finish()
     
     

@@ -112,6 +112,10 @@ def check_args(args, opts):
     # default gt 3d mode
     try: test = args.gt_mode
     except: args.gt_mode = 'joint3d_image' # joint3d_image, cam_3d, world_3d
+    try: test = args.mpjpe_mode
+    except: 
+        if args.gt_mode == 'joint3d_image': args.mpjpe_mode = 'joints_2.5d_image'
+        else: args.mpjpe_mode = args.gt_mode
     # denormalize oupput of the model (3d pose)
     try: test = args.denormalize_output
     except: args.denormalize_output = True
