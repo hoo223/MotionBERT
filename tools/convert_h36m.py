@@ -24,16 +24,16 @@ def save_clips(subset_name, root_path, train_data, train_labels):
             pickle.dump(data_dict, myprofile)
             
 datareader = DataReaderH36M(n_frames=243, sample_stride=1, data_stride_train=81, data_stride_test=243, 
-                            dt_file = 'h36m_gt_canonical_3d_same_z_tr_s1_ts_s5678.pkl', 
+                            dt_file = 'h36m_gt_canonical_3d_same_dist_tr_s1_ts_s5678.pkl', 
                             dt_root='data/motion3d/', 
                             input_mode='joint_2d_from_canonical_3d', 
-                            gt_mode='cam_3d_from_canonical_3d')
+                            gt_mode='cam_3d')
 train_data, test_data, train_labels, test_labels = datareader.get_sliced_data()
 print(train_data.shape, test_data.shape)
 assert len(train_data) == len(train_labels)
 assert len(test_data) == len(test_labels)
 
-root_path = "data/motion3d/MB3D_f243s81/H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-TR_S1_TS_S5678-REVISED/"
+root_path = "data/motion3d/MB3D_f243s81/H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_DIST-TR_S1_TS_S5678/"
 if not os.path.exists(root_path):
     os.makedirs(root_path)
 

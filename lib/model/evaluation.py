@@ -129,6 +129,7 @@ def inference_eval(args, model_pos, test_loader, datareader, only_one_batch=Fals
             gts_all.append(batch_gt.cpu().numpy())
             inputs_all.append(batch_input.cpu().numpy())
             if only_one_batch: break
+    print(len(results_all))
     results_all = np.concatenate(results_all)
     gts_all = np.concatenate(gts_all)
     inputs_all = np.concatenate(inputs_all)

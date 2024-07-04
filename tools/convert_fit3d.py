@@ -66,7 +66,7 @@ def save_clips(subset_name, root_path, train_data, train_labels):
         with open(os.path.join(save_path, "%08d.pkl" % i), "wb") as myprofile:  
             pickle.dump(data_dict, myprofile)
             
-datareader = DataReaderFIT3D(n_frames=243, sample_stride=1, data_stride_train=81, data_stride_test=243, dt_file = 'fit3d_gt_canonical_3d_same_z_ts_s4710.pkl', dt_root='data/motion3d/', input_mode='joint_2d_from_canonical_3d', gt_mode='cam_3d')
+datareader = DataReaderFIT3D(n_frames=243, sample_stride=1, data_stride_train=81, data_stride_test=243, dt_file = 'fit3d_gt_canonical_3d_same_z_tr_s03.pkl', dt_root='data/motion3d/', input_mode='joint_2d_from_canonical_3d', gt_mode='cam_3d')
 #datareader = DataReaderFIT3D(n_frames=243, sample_stride=1, data_stride_train=81, data_stride_test=243, dt_file = 'fit3d_gt_all_test.pkl', dt_root='data/motion3d/', input_mode='joint_2d', gt_mode='joint3d_image')
 
 train_data, test_data, train_labels, test_labels = datareader.get_sliced_data()
@@ -74,7 +74,7 @@ train_data, test_data, train_labels, test_labels = datareader.get_sliced_data()
 assert len(train_data) == len(train_labels)
 assert len(test_data) == len(test_labels)
 
-root_path = "data/motion3d/MB3D_f243s81/FIT3D-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-TS_S4710/"
+root_path = "data/motion3d/MB3D_f243s81/FIT3D-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-TR_S03/"
 #root_path = "data/motion3d/MB3D_f243s81/FIT3D-GT-ALL_TEST/"
 if not os.path.exists(root_path):
     os.makedirs(root_path)
