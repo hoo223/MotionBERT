@@ -10,14 +10,14 @@ from lib.model.DHDSTformer import DHDSTformer_total, DHDSTformer_total2, DHDSTfo
     DHDSTformer_torso_limb, \
     DHDSTformer_onevec
 
-def load_model(opts, args):
+def load_model(opts, args, verbose=True):
     if opts.pretrained_backbone != '':
         print('Checkpoint for backbone', opts.pretrained_backbone)
         chk_backbone_filename = os.path.join(opts.pretrained_backbone, opts.selection)
     else:
         chk_backbone_filename = ''
 
-    print(args.model)
+    if verbose: print(args.model)
     if 'DHDSTformer_total' == args.model: model_pos = DHDSTformer_total(chk_filename=chk_backbone_filename, args=args)
     elif 'DHDSTformer_total2' == args.model: model_pos = DHDSTformer_total2(chk_filename=chk_backbone_filename, args=args)
     elif 'DHDSTformer_total3' == args.model: model_pos = DHDSTformer_total3(chk_filename=chk_backbone_filename, args=args)
@@ -49,12 +49,12 @@ def load_model(opts, args):
     if args.finetune:
         if opts.resume:
             chk_filename = opts.resume
-            print('Loading checkpoint from resume', chk_filename)
+            if verbose:print('Loading checkpoint from resume', chk_filename)
             checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
             model_pos.load_state_dict(checkpoint['model_pos'], strict=True)
         elif opts.pretrained:
             chk_filename = os.path.join(opts.pretrained, opts.selection)
-            print('Loading checkpoint from pretrained', chk_filename)
+            if verbose:print('Loading checkpoint from pretrained', chk_filename)
             checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
             model_pos.load_state_dict(checkpoint['model_pos'], strict=True)    
     else:
@@ -63,12 +63,12 @@ def load_model(opts, args):
             opts.resume = chk_filename
         if opts.resume:
             chk_filename = opts.resume
-            print('Loading checkpoint from resume', chk_filename)
+            if verbose:print('Loading checkpoint from resume', chk_filename)
             checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
             model_pos.load_state_dict(checkpoint['model_pos'], strict=True)
     if opts.evaluate:
         chk_filename = os.path.join(opts.checkpoint, opts.evaluate)
-        print('Loading checkpoint', chk_filename)
+        if verbose:print('Loading checkpoint', chk_filename)
         checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
         model_pos.load_state_dict(checkpoint['model_pos'], strict=True)
     
