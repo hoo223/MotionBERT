@@ -4,13 +4,14 @@ from lib.utils.tools import *
 def list_of_strings(arg):
     return arg.split(',')
 
-def get_opts_args(input_args=None):
+def get_opts_args(input_args=None, verbose=True):
     opts = parse_args(input_args)
-    print(opts.config)
     args = get_config(opts.config)
     # check arguments
     args, opts = check_args(args, opts)
-    print(opts.pretrained_backbone == '')
+    if verbose:
+        print(opts.config)
+        print(opts.pretrained_backbone == '')
     return args, opts
 
 def parse_args(input_args=None):

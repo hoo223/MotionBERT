@@ -61,6 +61,6 @@ def load_dataset(args):
                 datareader = DataReaderPOSEAUG3DHP(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file, mode=args.gt_mode)
             else:
                 print('3DHP')
-                datareader = DataReader3DHP(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file, mode=args.gt_mode)
+                datareader = DataReader3DHP(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file, input_mode=args.input_mode, gt_mode=args.gt_mode)
 
     return train_loader_3d, test_loader, posetrack_loader_2d, instav_loader_2d, datareader

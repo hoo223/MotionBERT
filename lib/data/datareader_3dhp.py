@@ -9,7 +9,7 @@ from lib.utils.utils_data import split_clips
 random.seed(0)
     
 class DataReader3DHP(object):
-    def __init__(self, n_frames, sample_stride, data_stride_train, data_stride_test, read_confidence=True, dt_root = 'data/motion3d', dt_file = '3dhp_gt_testset.pkl', mode='cam_3d'):
+    def __init__(self, n_frames, sample_stride, data_stride_train, data_stride_test, read_confidence=True, dt_root = 'data/motion3d', dt_file = '3dhp_gt_testset.pkl', input_mode='joint_2d', gt_mode='joint3d_image'):
         self.gt_trainset = None
         self.gt_testset = None
         self.split_id_train = None
@@ -21,12 +21,13 @@ class DataReader3DHP(object):
         self.data_stride_train = data_stride_train
         self.data_stride_test = data_stride_test
         self.read_confidence = read_confidence
-        self.mode = mode
+        self.input_mode = input_mode
+        self.gt_mode = gt_mode
         
     def read_2d(self):
-        print(self.dt_dataset['train']['joint_2d'].shape, self.dt_dataset['test']['joint_2d'].shape)
-        trainset = self.dt_dataset['train']['joint_2d'][::self.sample_stride, :, :2].astype(np.float32)  # [N, 17, 2]
-        testset = self.dt_dataset['test']['joint_2d'][::self.sample_stride, :, :2].astype(np.float32)  # [N, 17, 2]
+        #print(self.dt_dataset['train']['joint_2d'].shape, self.dt_dataset['test']['joint_2d'].shape)
+        trainset = self.dt_dataset['train'][self.input_mode][::self.sample_stride, :, :2].astype(np.float32)  # [N, 17, 2]
+        testset = self.dt_dataset['test'][self.input_mode][::self.sample_stride, :, :2].astype(np.float32)  # [N, 17, 2]
         # map to [-1, 1]
         res_w, res_h = 2048, 2048
         trainset = trainset / res_w * 2 - [1, res_h / res_w]
@@ -48,15 +49,19 @@ class DataReader3DHP(object):
         return trainset, testset
 
     def read_3d(self):
-        train_labels = self.dt_dataset['train'][self.mode][::self.sample_stride, :, :3].astype(np.float32)  # [N, 17, 3]
-        test_labels = self.dt_dataset['test'][self.mode][::self.sample_stride, :, :3].astype(np.float32)    # [N, 17, 3]
-        if self.mode == 'joint3d_image': # normalize to [-1, 1]
+        train_labels = self.dt_dataset['train'][self.gt_mode][::self.sample_stride, :, :3].astype(np.float32)  # [N, 17, 3]
+        test_labels = self.dt_dataset['test'][self.gt_mode][::self.sample_stride, :, :3].astype(np.float32)    # [N, 17, 3]
+        if self.gt_mode == 'joint3d_image': # normalize to [-1, 1]
             # map to [-1, 1]
             res_w, res_h = 2048, 2048
             train_labels[:, :, :2] = train_labels[:, :, :2] / res_w * 2 - [1, res_h / res_w]
             train_labels[:, :, 2:] = train_labels[:, :, 2:] / res_w * 2
             test_labels[:, :, :2] = test_labels[:, :, :2] / res_w * 2 - [1, res_h / res_w]
             test_labels[:, :, 2:] = test_labels[:, :, 2:] / res_w * 2
+        elif self.gt_mode == 'world_3d' or self.gt_mode == 'cam_3d' or self.gt_mode == 'cam_3d_from_canonical_3d':
+            pass
+        else:
+            raise ValueError("Invalid mode for read_3d: {}".format(self.gt_mode))
             
         return train_labels, test_labels
     
@@ -94,7 +99,7 @@ class DataReader3DHP(object):
     
     def denormalize(self, test_data):
         # test_data: (N, n_frames, 51) or test_data: (N, n_frames, 17, 3)        
-        if self.mode == 'joint3d_image':
+        if self.gt_mode == 'joint3d_image':
             n_clips = test_data.shape[0]
             test_hw = self.get_hw()
             num_keypoints = test_data.shape[2]
@@ -106,7 +111,7 @@ class DataReader3DHP(object):
                 data[idx, :, :, :2] = (data[idx, :, :, :2] + np.array([1, res_h / res_w])) * res_w / 2
                 data[idx, :, :, 2:] = data[idx, :, :, 2:] * res_w / 2
             return data # [n_clips, -1, 17, 3]
-        elif self.mode == 'world_3d' or self.mode == 'cam_3d':
+        elif self.gt_mode == 'world_3d' or self.gt_mode == 'cam_3d' or self.gt_mode == 'cam_3d_from_canonical_3d':
             return test_data
         else:
-            raise ValueError("Invalid mode: {}".format(self.mode))
+            raise ValueError("Invalid mode: {}".format(self.gt_mode))
