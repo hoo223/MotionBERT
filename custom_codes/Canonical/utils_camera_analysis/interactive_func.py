@@ -1,4 +1,4 @@
-from . import natsorted, get_pose_seq_and_cam_param, rotate_torso_by_R, Rotation
+from . import natsorted, get_pose_seq_and_cam_param, rotate_torso_by_R, Rotation, np
 
 def update_select(self, subject, action):
     try:
@@ -21,6 +21,7 @@ def update_select(self, subject, action):
             self.visualize_data()
     except Exception as e:
         with self.test_out:
+            print(subject, action)
             print('select error', e)
             print()
             

@@ -53,7 +53,7 @@ def calculate_error(self, cam_name):
     self.dist_cam_origin_to_pelvis.value = str(mag)
     self.vec_cam_origin_to_pelvis.value = f"z: {mag * cos(radians(cam_yaw)):.2f} x: {-mag * sin(radians(cam_yaw)):.2f}"
     
-    if self.set_line_mode:
+    if self.line_mode:
         self.vec_to_lhip = self.pose_2d_norm_canonical[1] - self.pose_2d_norm_canonical[0]
         self.vec_to_rhip = self.pose_2d_norm_canonical[2] - self.pose_2d_norm_canonical[0]
         self.dist_to_lhip = np.linalg.norm(self.vec_to_lhip)
@@ -74,13 +74,13 @@ def visualize_data(self):
     if self.cam_mode == 'custom':
         self.update_world_3d()
         self.cam_3d = self.update_cam_3d('custom')
-        self.pose_2d, self.pose_2d_norm, self.pose_2d_norm_centered = self.generate_2d_pose('custom')
+        self.pose_2d, self.pose_2d_norm, self.pose_2d_norm_centered = self.generate_2d_pose(self.cam_3d, 'custom')
         if self.line_mode:   dataset_type = 'base'
         else:                dataset_type = 'h36m'
         self.calculate_error(cam_name='custom')
         
         with self.plot3d:
-            clear_axes([self.ax_3d, self.ax_3d_2])
+            clear_axes([self.ax_3d_1, self.ax_3d_2])
             plt.sca(self.ax_3d_1)
             self.cameras['custom'].cam_frame.draw3d()
             plt.sca(self.ax_3d_2)
@@ -90,8 +90,8 @@ def visualize_data(self):
             
         with self.plot2d:
             clear_axes([self.ax_input, self.ax_canonical, self.ax_compare1, self.ax_compare2])
-            draw_2d_pose(self.ax_input, self.pose_2d_norm, normalize=True, dataset=dataset_type)
-            draw_2d_pose(self.ax_canonical, self.pose_2d_norm_canonical, normalize=True, dataset=dataset_type)
+            draw_2d_pose(self.ax_input, self.pose_2d_norm_centered, normalize=True, dataset=dataset_type)
+            #draw_2d_pose(self.ax_canonical, self.pose_2d_norm_canonical, normalize=True, dataset=dataset_type)
             if self.compare1_pose is not None:
                 draw_2d_pose(self.ax_compare1, self.compare1_pose, normalize=True, dataset=dataset_type)
             if self.compare2_pose is not None:

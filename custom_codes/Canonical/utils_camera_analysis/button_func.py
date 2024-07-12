@@ -44,9 +44,9 @@ def reset_cam_height(self, b):
     self.cam_height_slider.value = 1.0
     
 def set_compare1(self, b):
-    self.compare1_pose = self.pose_2d_norm_canonical.copy()
+    #self.compare1_pose = self.pose_2d_norm_canonical.copy()
     self.visualize_data()
     
 def set_compare2(self, b):
-    self.compare2_pose = self.pose_2d_norm_canonical.copy()
+    #self.compare2_pose = self.pose_2d_norm_canonical.copy()
     self.visualize_data()
