@@ -1,5 +1,3 @@
-data/
-
 wandb/
 
 output_videos/
@@ -10,8 +8,6 @@ __pycache__/
 
 Figures/
 
-custom_codes/MotionBERT_analysis/h36m_test.pkl
-
 custom_codes/test_utils.py
 
 custom_codes/AIHUB_analysis/
@@ -21,8 +17,6 @@ custom_codes/AIHUB_analysis/
 *.mp4
 
 *.npy
-
-input_videos/H36M_from_generation/bbox_info.pkl
 
 *.pkl
 

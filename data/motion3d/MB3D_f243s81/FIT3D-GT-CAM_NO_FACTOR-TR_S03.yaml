@@ -1,0 +1,19 @@
+cam_list: []
+canonical_type: null
+data_type_list:
+- cam_3d
+- joint_2d
+dataset_name: fit3d
+gt_mode: cam_3d
+input_mode: joint_2d
+input_source: GT
+train_subject:
+- s03
+test_subject:
+- s04
+- s07
+- s10
+- s05
+- S8
+- S9
+- S11

@@ -1,0 +1,29 @@
+cam_list:
+- cam0
+- cam1
+- cam2
+- cam4
+- cam5
+- cam6
+- cam7
+- cam8
+canonical_type: null
+data_type_list:
+- cam_3d
+- joint_2d
+dataset_name: 3dhp
+gt_mode: cam_3d
+input_mode: joint_2d
+input_source: GT
+test_cam: []
+test_subject:
+- S1
+- S2
+- S3
+- S4
+- S5
+- S6
+- S7
+- S8
+train_cam: []
+train_subject: []

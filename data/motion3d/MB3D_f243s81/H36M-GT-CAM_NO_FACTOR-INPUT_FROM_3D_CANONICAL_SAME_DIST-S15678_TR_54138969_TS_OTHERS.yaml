@@ -1,0 +1,28 @@
+cam_list: []
+canonical_type: same_dist
+data_type_list:
+- cam_3d
+- joint_2d_from_canonical_3d
+- cam_3d_from_canonical_3d
+dataset_name: h36m
+gt_mode: cam_3d
+input_mode: joint_2d_from_canonical_3d
+input_source: GT
+test_cam:
+- '60457274'
+- '55011271'
+- '58860488'
+test_subject:
+- S1
+- S5
+- S6
+- S7
+- S8
+train_cam:
+- '54138969'
+train_subject:
+- S1
+- S5
+- S6
+- S7
+- S8
