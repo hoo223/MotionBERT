@@ -27,3 +27,7 @@ custom_codes/AIHUB_analysis/
 *.gif
 
 train.sh
+
+data/cifar-10-batches-py/
+
+*.gz
