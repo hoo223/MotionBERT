@@ -7,9 +7,9 @@
 
 # subject = 'S1'
 # action = 'Walking'
-# action_list = h36m_3d_world._data[subject].keys()
-# pose3d_s1_walking = h36m_3d_world._data[subject][action]['positions'] # 3d skeleton sequence wrt world CS
-# cam_info_s1_walking = h36m_3d_world._data[subject][action]['cameras']
+# action_list = h36m_3d_world[subject].keys()
+# pose3d_s1_walking = h36m_3d_world[subject][action]['positions'] # 3d skeleton sequence wrt world CS
+# cam_info_s1_walking = h36m_3d_world[subject][action]['cameras']
 # cam_param_s1_walking = get_cam_param(cam_info_s1_walking, subject, h36m_cam_param)
 
 # # camera parameters

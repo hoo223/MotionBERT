@@ -24,7 +24,7 @@ def save_clips(subset_name, root_path, train_data, train_labels):
             pickle.dump(data_dict, myprofile)
             
 datareader = DataReader3DHP(n_frames=243, sample_stride=1, data_stride_train=81, data_stride_test=243, 
-                            dt_file = '3dhp_gt_canonical_3d_same_z_test_all_train.pkl', 
+                            dt_file = '3dhp_gt_test_canonical_3d_from_fixed_dist_5_TS1_6.pkl', 
                             dt_root='data/motion3d/', 
                             input_mode='joint_2d_from_canonical_3d', 
                             gt_mode='cam_3d')
@@ -33,7 +33,7 @@ print(train_data.shape, test_data.shape)
 assert len(train_data) == len(train_labels)
 assert len(test_data) == len(test_labels)
 
-root_path = "data/motion3d/MB3D_f243s81/3DHP-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-TEST_ALL_TRAIN/"
+root_path = "data/motion3d/MB3D_f243s81/3DHP-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_FIXED_DIST_5-TEST_TS1_6/"
 if not os.path.exists(root_path):
     os.makedirs(root_path)
 

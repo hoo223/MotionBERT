@@ -67,6 +67,46 @@ class MotionDataset3D(MotionDataset):
             raise ValueError('Data split unknown.')    
         return torch.FloatTensor(motion_2d), torch.FloatTensor(motion_3d)
     
+class MotionDataset3DTotal():
+    def __init__(self, args, inputs, labels, data_split):
+        self.flip = args.flip
+        self.synthetic = args.synthetic
+        self.aug = Augmenter3D(args)
+        self.gt_2d = args.gt_2d
+        self.inputs = inputs
+        self.labels = labels
+        self.data_split = data_split
+
+    def __getitem__(self, index):
+        'Generates one sample of data'
+        # Select sample
+        motion_3d = self.labels[index]
+        if self.data_split=="train":
+            if self.synthetic or self.gt_2d:
+                motion_3d = self.aug.augment3D(motion_3d)
+                motion_2d = np.zeros(motion_3d.shape, dtype=np.float32)
+                motion_2d[:,:,:2] = motion_3d[:,:,:2]
+                motion_2d[:,:,2] = 1                        # No 2D detection, use GT xy and c=1.
+            elif self.inputs[index] is not None:     # Have 2D detection 
+                motion_2d = self.inputs[index]
+                if self.flip and random.random() > 0.5: # Training augmentation - random flipping
+                    motion_2d = flip_data(motion_2d)
+                    motion_3d = flip_data(motion_3d)
+            else:
+                raise ValueError('Training illegal.') 
+        elif self.data_split=="test":                                           
+            motion_2d = self.inputs[index]
+            if self.gt_2d:
+                motion_2d[:,:,:2] = motion_3d[:,:,:2]
+                motion_2d[:,:,2] = 1
+        else:
+            raise ValueError('Data split unknown.')    
+        return torch.FloatTensor(motion_2d), torch.FloatTensor(motion_3d)
+    
+    def __len__(self):
+        'Denotes the total number of samples'
+        return len(self.inputs)
+    
 
 
     

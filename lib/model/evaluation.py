@@ -5,20 +5,21 @@ import prettytable
 from lib.model.loss import *
 from lib.utils.utils_data import flip_data
 
-def evaluate(args, model_pos, test_loader, datareader, checkpoint, only_one_batch=False):
-    print('INFO: Testing')
+def evaluate(args, model_pos, test_loader, datareader, checkpoint, only_one_batch=False, verbose=True):
+    if verbose: print('INFO: Testing')
     model_pos.eval()  
     if 'DHDST_onevec' in args.model:
         e1, e2, results_all, total_result_dict = evaluate_onevec(args, model_pos, test_loader, datareader)
         inputs_all, gts_all = None, None
     else:
-        try:
-            if args.start_epoch:
-                print(f"Evalute model on epoch {checkpoint['epoch']} (epoch starts from {args.start_epoch})")
-            else:
-                print(f"Evalute model on epoch {checkpoint['epoch']}")
-        except:
-            print('No epoch information in the checkpoint')
+        if verbose:
+            try:
+                if args.start_epoch:
+                    print(f"Evalute model on epoch {checkpoint['epoch']} (epoch starts from {args.start_epoch})")
+                else:
+                    print(f"Evalute model on epoch {checkpoint['epoch']}")
+            except:
+                print('No epoch information in the checkpoint')
         # get inference results          
         results_all, inputs_all, gts_all = inference_eval(args, model_pos, test_loader, datareader, only_one_batch)
         # calculate evaluation metric
@@ -26,7 +27,7 @@ def evaluate(args, model_pos, test_loader, datareader, checkpoint, only_one_batc
             e1, total_result_dict = calculate_eval_metric_canonicalization(args, inputs_all, results_all, gts_all, datareader)
             e2 = -1
         else:
-            e1, e2, total_result_dict = calculate_eval_metric(args, results_all, datareader)
+            e1, e2, total_result_dict = calculate_eval_metric(args, results_all, datareader, verbose)
     
     return e1, e2, results_all, inputs_all, gts_all, total_result_dict
 
@@ -129,7 +130,6 @@ def inference_eval(args, model_pos, test_loader, datareader, only_one_batch=Fals
             gts_all.append(batch_gt.cpu().numpy())
             inputs_all.append(batch_input.cpu().numpy())
             if only_one_batch: break
-    print(len(results_all))
     results_all = np.concatenate(results_all)
     gts_all = np.concatenate(gts_all)
     inputs_all = np.concatenate(inputs_all)
@@ -171,7 +171,7 @@ def get_clip_info(args, datareader, results_all):
 
     return num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions
 
-def calculate_eval_metric(args, results_all, datareader):
+def calculate_eval_metric(args, results_all, datareader, verbose=True):
     num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions = get_clip_info(args, datareader, results_all)
 
     total_result_dict = {}
@@ -261,6 +261,7 @@ def calculate_eval_metric(args, results_all, datareader):
         
         for part in part_list:
             if part == 'whole': joint_list = [j for j in range(pred.shape[1])]
+            elif part == 'whole_without_nose': joint_list = [j for j in range(pred.shape[1]) if j!=9]
             elif part == 'torso_small': joint_list = [pelvis, r_hip, l_hip, neck, l_shoulder, r_shoulder]
             elif part == 'torso_full': joint_list = [pelvis, r_hip, l_hip, torso, neck, nose, head, l_shoulder, r_shoulder]
             elif part == 'torso_full_to_small': joint_list = [0, 1, 2, 4, 7, 8]

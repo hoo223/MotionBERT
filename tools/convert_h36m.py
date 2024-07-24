@@ -33,7 +33,7 @@ print(train_data.shape, test_data.shape)
 assert len(train_data) == len(train_labels)
 assert len(test_data) == len(test_labels)
 
-root_path = "data/motion3d/MB3D_f243s81/H36M-GT-CAM_NO_FACTOR-TR-INPUT_FROM_3D_CANONICAL_FIXED_DIST_5-S1_TS_S5678/"
+root_path = "data/motion3d/MB3D_f243s81/H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_FIXED_DIST_5-TR_S1_TS_S5678/"
 if not os.path.exists(root_path):
     os.makedirs(root_path)
 

@@ -31,7 +31,7 @@ att_fuse: True
 
 # Data
 data_root: data/motion3d/MB3D_f243s81/
-subset_list: [H36M-GT-CAM_NO_FACTOR-TR-INPUT_FROM_3D_CANONICAL_FIXED_DIST_5-S1_TS_S5678]
+subset_list: [H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_FIXED_DIST_5-TR_S1_TS_S5678]
 dt_file: h36m_gt_canonical_3d_fixed_dist_5_tr_s1_ts_s5678.pkl
 clip_len: 243
 data_stride: 81

@@ -14,6 +14,12 @@ def get_opts_args(input_args=None, verbose=True):
         print(opts.pretrained_backbone == '')
     return args, opts
 
+def get_opt_args_from_model_name(checkpoint, config_root = 'configs/pose3d/', checkpoint_root = 'checkpoint/pose3d/'):
+    config = checkpoint + '.yaml'
+    input_args = ['--config', config_root+config, '--evaluate', checkpoint_root+checkpoint+'/best_epoch.bin']
+    args, opts = get_opts_args(input_args)
+    return args, opts
+
 def parse_args(input_args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/pretrain.yaml", help="Path to the config file.")

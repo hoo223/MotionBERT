@@ -29,3 +29,7 @@ input_videos/H36M_from_generation/bbox_info.pkl
 *.png
 
 *.zip
+
+*.gif
+
+train.sh

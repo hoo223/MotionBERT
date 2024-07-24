@@ -2,13 +2,13 @@ from . import natsorted, get_pose_seq_and_cam_param, rotate_torso_by_R, Rotation
 
 def update_select(self, subject, action):
     try:
-        if len(self.h36m_3d_world._data.keys()) > 0:
+        if len(self.h36m_3d_world.keys()) > 0:
             # with self.test_out:
             #     print('update select')
             if self.subject != subject:
-                #self.select_subject.options = natsorted(list(self.h36m_3d_world._data.keys()))
+                #self.select_subject.options = natsorted(list(self.h36m_3d_world.keys()))
                 self.select_subject.value = subject
-                self.select_action.options = natsorted(list(self.h36m_3d_world._data[subject].keys()))
+                self.select_action.options = natsorted(list(self.h36m_3d_world[subject].keys()))
                 self.select_action.value = self.select_action.options[0]
                 self.subject = subject
                 self.action = self.select_action.value
