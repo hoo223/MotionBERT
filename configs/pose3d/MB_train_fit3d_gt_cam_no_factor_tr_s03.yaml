@@ -16,7 +16,7 @@ lr_decay: 0.99
 
 # Test
 part_list: ['whole'] 
-denormalize_output: True
+denormalize_output: False
 
 # Model
 model: 'MB_train_fit3d_gt_cam_no_factor_tr_s03'

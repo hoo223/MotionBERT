@@ -125,7 +125,9 @@ def check_args(args, opts):
         else: args.mpjpe_mode = args.gt_mode
     # denormalize oupput of the model (3d pose)
     try: test = args.denormalize_output
-    except: args.denormalize_output = True
+    except: 
+        args.denormalize_output = True
+        if args.gt_mode == 'cam_3d': args.denormalize_output = False
     # print summary table
     try: test = args.print_summary_table
     except: args.print_summary_table = True
