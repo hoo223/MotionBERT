@@ -1,0 +1,20 @@
+cam_list: []
+canonical_type: null
+data_type_list:
+- cam_3d
+- joint_2d
+dataset_name: h36m
+gt_mode: cam_3d
+input_mode: joint_2d
+input_source: GT
+test_cam: []
+test_subject:
+- S1
+- S5
+- S6
+- S7
+- S8
+- S9
+- S11
+train_cam: []
+train_subject: []

@@ -10,8 +10,8 @@ from lib.utils.utils_data import split_clips
 random.seed(0)
     
 class DataReaderTotal(object):
-    def __init__(self, n_frames, sample_stride, data_stride_train, data_stride_test, read_confidence=True, 
-                 yaml_root='data/motion3d/MB3D_f243s81', 
+    def __init__(self, n_frames=243, sample_stride=1, data_stride_train=81, data_stride_test=243, read_confidence=True, 
+                 yaml_root='data/motion3d/yaml_files', 
                  subset='', 
                  overwrite_list = [],
                  default_data_type_lsit = ['source', 'cam_param', 'camera_name', 'action', 'confidence'],
@@ -26,7 +26,10 @@ class DataReaderTotal(object):
         self.input_source   = self.yaml_data['input_source']
         self.input_mode     = self.yaml_data['input_mode']
         self.gt_mode        = self.yaml_data['gt_mode']
-        self.train_subject  = self.yaml_data['train_subject']
+        try:
+            self.train_subject  = self.yaml_data['train_subject']
+        except:
+            self.train_subject  = []
         self.test_subject   = self.yaml_data['test_subject']
         self.train_cam      = self.yaml_data['train_cam']
         self.test_cam       = self.yaml_data['test_cam']
@@ -58,10 +61,12 @@ class DataReaderTotal(object):
             # type mapping
             if data_type == 'cam_3d_from_canonical_3d':          load_type = 'cam_3d_canonical'
             elif data_type == 'joint_2d':                        load_type = 'img_2d'
-            elif data_type == 'joint_2d_from_canonical_3d':      load_type = 'img_2d_canonical'         
+            elif data_type == 'joint_2d_from_canonical_3d':      load_type = 'img_2d_canonical'     
+            elif data_type == 'joint3d_image':                   load_type = 'img_3d'
             elif data_type == 'joint3d_image_from_canonical_3d': load_type = 'img_3d_canonical'
             elif data_type == '2.5d_factor':                     load_type = 'scale_factor'
             elif data_type == '2.5d_factor_from_canonical_3d':   load_type = 'scale_factor_canonical'
+            elif data_type == 'joints_2.5d_image':               load_type = 'img_25d'
             else:                                                load_type = data_type
             # load data
             if data_type not in ['source', 'cam_param', 'camera_name', 'action', 'confidence']:
@@ -167,14 +172,9 @@ class DataReaderTotal(object):
     def read_hw(self):
         if self.test_hw is not None:
             return self.test_hw
-        test_hw = np.zeros((len(self.dt_dataset['test']['camera_name']), 2))
-        for idx, camera_name in enumerate(self.dt_dataset['test']['camera_name']):
-            if camera_name == '54138969' or camera_name == '60457274':
-                res_w, res_h = 1000, 1002
-            elif camera_name == '55011271' or camera_name == '58860488':
-                res_w, res_h = 1000, 1000
-            else:
-                assert 0, '%d data item has an invalid camera name' % idx
+        test_hw = np.zeros((len(self.dt_dataset['test']['camera_name']), 2)) # (total_frame_num, 2)
+        for idx, cam_param in enumerate(self.dt_dataset['test']['cam_param']):
+            res_w, res_h = cam_param['W'], cam_param['H']
             test_hw[idx] = res_w, res_h
         self.test_hw = test_hw
         return test_hw
@@ -205,13 +205,12 @@ class DataReaderTotal(object):
         return train_data, test_data, train_labels, test_labels
     
     def denormalize(self, test_data):
-        # test_data: (N, n_frames, 51) or test_data: (N, n_frames, 17, 3)        
+        # test_data: (N, F, 51) or test_data: (N, F, 17, 3)        
         if self.gt_mode == 'joint3d_image':
-            n_clips = test_data.shape[0]
+            n_clips = test_data.shape[0] # N
             test_hw = self.get_hw()
             num_keypoints = test_data.shape[2]
             data = test_data.reshape([n_clips, -1, num_keypoints, 3])
-            #assert len(data) == len(test_hw), "len(data): {}, len(test_hw): {}".format(len(data), len(test_hw))
             # denormalize (x,y,z) coordiantes for results
             for idx, item in enumerate(data):
                 res_w, res_h = test_hw[idx]
