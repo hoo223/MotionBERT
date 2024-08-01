@@ -1,3 +1,4 @@
+adaptive_focal: false
 cam_list: []
 canonical_type: same_z
 data_type_list:

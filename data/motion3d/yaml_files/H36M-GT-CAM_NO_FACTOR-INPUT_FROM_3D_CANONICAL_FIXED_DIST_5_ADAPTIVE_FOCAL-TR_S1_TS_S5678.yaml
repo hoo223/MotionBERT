@@ -1,6 +1,6 @@
-adaptive_focal: false
+adaptive_focal: true
 cam_list: []
-canonical_type: same_z
+canonical_type: fixed_dist_5
 data_type_list:
 - cam_3d
 - joint_2d_from_canonical_3d
@@ -11,12 +11,10 @@ input_mode: joint_2d_from_canonical_3d
 input_source: GT
 test_cam: []
 test_subject:
-- S1
 - S5
 - S6
 - S7
 - S8
-- S9
-- S11
 train_cam: []
-train_subject: []
+train_subject:
+- S1

@@ -34,6 +34,7 @@ class DataReaderTotal(object):
         self.train_cam      = self.yaml_data['train_cam']
         self.test_cam       = self.yaml_data['test_cam']
         self.cam_list       = self.yaml_data['cam_list']
+        self.adaptive_focal = self.yaml_data['adaptive_focal']
         self.default_data_type_lsit = default_data_type_lsit
         self.overwrite_list = overwrite_list
         self.gt_trainset    = None
@@ -55,7 +56,7 @@ class DataReaderTotal(object):
     def generate_total_dataset(self, verbose):
         dt_dataset = {'train': {}, 'test': {}}
         source_list = load_data(dataset_name=self.dataset_name, data_type='source_list', overwrite_list=self.overwrite_list, verbose=verbose)
-        cam_params = load_data(dataset_name=self.dataset_name, data_type='cam_param', overwrite_list=self.overwrite_list, verbose=verbose)
+        cam_params = load_data(dataset_name=self.dataset_name, data_type='cam_param', adaptive_focal=self.adaptive_focal, overwrite_list=self.overwrite_list, verbose=verbose)
         
         for data_type in self.data_type_list:
             # type mapping
@@ -70,7 +71,7 @@ class DataReaderTotal(object):
             else:                                                load_type = data_type
             # load data
             if data_type not in ['source', 'cam_param', 'camera_name', 'action', 'confidence']:
-                data = load_data(dataset_name=self.dataset_name, data_type=load_type, canonical_type=self.canonical_type, overwrite_list=self.overwrite_list, verbose=verbose)
+                data = load_data(dataset_name=self.dataset_name, data_type=load_type, canonical_type=self.canonical_type, adaptive_focal=self.adaptive_focal, overwrite_list=self.overwrite_list, verbose=verbose)
             # initialize
             for train_type in ['train', 'test']:
                 dt_dataset[train_type][data_type] = []
