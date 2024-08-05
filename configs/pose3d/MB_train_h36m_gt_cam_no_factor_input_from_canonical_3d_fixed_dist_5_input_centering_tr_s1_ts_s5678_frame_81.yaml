@@ -20,7 +20,7 @@ part_list: ['whole']
 denormalize_output: False
 
 # Model
-model: 'MB_train_h36m_gt_cam_no_factor_input_from_canonical_3d_fixed_dist_5_input_centering_tr_s1_ts_s5678'
+model: 'MB_train_h36m_gt_cam_no_factor_input_from_canonical_3d_fixed_dist_5_input_centering_tr_s1_ts_s5678_frame_81'
 maxlen: 81
 dim_feat: 512
 mlp_ratio: 2

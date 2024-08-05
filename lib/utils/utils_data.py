@@ -97,18 +97,18 @@ def split_clips(vid_list, n_frames, data_stride):
     st = 0
     i = 0
     saved = set()
-    while i<len(vid_list):
+    while i < len(vid_list):
         i += 1
-        if i-st == n_frames:
+        if i - st == n_frames:
             result.append(range(st,i))
             saved.add(vid_list[i-1])
             st = st + data_stride
             n_clips += 1
-        if i==len(vid_list):
+        if i == len(vid_list):
             break
-        if vid_list[i]!=vid_list[i-1]: 
+        if vid_list[i] != vid_list[i-1]: 
             if not (vid_list[i-1] in saved):
-                resampled = resample(i-st, n_frames) + st
+                resampled = resample(i - st, n_frames) + st
                 result.append(resampled)
                 saved.add(vid_list[i-1])
             st = i

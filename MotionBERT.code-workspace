@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../hpe_library"
+		}
+	],
+	"settings": {}
+}

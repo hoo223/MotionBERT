@@ -1,0 +1,21 @@
+adaptive_focal: true
+cam_list: []
+canonical_type: fixed_dist_5
+data_type_list:
+- cam_3d
+- joint_2d_from_canonical_3d
+- cam_3d_from_canonical_3d
+dataset_name: 3dhp
+gt_mode: cam_3d
+input_mode: joint_2d_from_canonical_3d
+input_source: GT
+test_cam: []
+test_subject:
+- TS1
+- TS2
+- TS3
+- TS4
+- TS5
+- TS6
+train_cam: []
+train_subject: []

@@ -8,8 +8,8 @@ import os
 import numpy as np
 import random
 import torch
-import wandb
-wandb.login()
+#import wandb
+#wandb.login()
 
 
 from lib.utils.learning import * # load_backbone
@@ -69,17 +69,17 @@ if __name__ == "__main__":
     args, opts = get_opts_args()
     set_random_seed(opts.seed)
     print(args)
-    if opts.evaluate == '':
-        # run = wandb.init(
-        #     project=get_project_name(args),
-        #     config=args,
-        #     name=args.model,
-        # )
-        run = None
-    else:
-        run = None
-    main(args, opts, run)
-    if run != None:
-        wandb.finish()
+    # if opts.evaluate == '':
+    #     # run = wandb.init(
+    #     #     project=get_project_name(args),
+    #     #     config=args,
+    #     #     name=args.model,
+    #     # )
+    #     run = None
+    # else:
+    #     run = None
+    main(args, opts)
+    # if run != None:
+    #     wandb.finish()
     
     
