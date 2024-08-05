@@ -21,7 +21,7 @@ denormalize_output: False
 
 # Model
 model: 'MB_train_h36m_gt_cam_no_factor_input_from_canonical_3d_same_z_input_centering_tr_s1_ts_s5678_frame_81'
-maxlen: 243
+maxlen: 81
 dim_feat: 512
 mlp_ratio: 2
 depth: 5
@@ -33,8 +33,8 @@ att_fuse: True
 data_root: data/motion3d/MB3D_f243s81/
 subset_list: [H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-TR_S1_TS_S5678]
 dt_file: h36m_gt_canonical_3d_same_z_tr_s1_ts_s5678.pkl
-clip_len: 243
-data_stride: 81
+clip_len: 81
+data_stride: 27
 rootrel: True
 sample_stride: 1
 num_joints: 17
