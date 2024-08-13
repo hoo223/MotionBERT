@@ -123,6 +123,9 @@ def check_args(args, opts):
     except: 
         if args.gt_mode == 'joint3d_image': args.mpjpe_mode = 'joints_2.5d_image'
         else: args.mpjpe_mode = args.gt_mode
+    # default steprot
+    try: test = args.step_rot
+    except: args.step_rot = 0
     # denormalize oupput of the model (3d pose)
     try: test = args.denormalize_output
     except: 

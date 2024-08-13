@@ -13,12 +13,17 @@ class DataReaderTotal(object):
     def __init__(self, n_frames=243, sample_stride=1, data_stride_train=81, data_stride_test=243, read_confidence=True, 
                  yaml_root='data/motion3d/yaml_files', 
                  subset='', 
+                 step_rot=0,
                  overwrite_list = [],
                  default_data_type_lsit = ['source', 'cam_param', 'camera_name', 'action', 'confidence'],
                  verbose=True):
+        # load yaml file
+        assert subset != '', 'subset should be provided'
         yaml_path = os.path.join(yaml_root, subset+'.yaml')
-        assert os.path.exists(yaml_path), f'{yaml_path} does not exist'
-        with open(os.path.join(yaml_path), 'r') as file:
+        if not os.path.exists(yaml_path):
+            print(f'{yaml_path} does not exist... generating yaml file')
+            gernerate_dataset_yaml(subset)
+        with open(os.path.join(yaml_path), 'r') as file: 
             self.yaml_data = yaml.load(file, Loader=yaml.FullLoader)
         self.dataset_name   = self.yaml_data['dataset_name']
         self.data_type_list = self.yaml_data['data_type_list'] + default_data_type_lsit
@@ -35,6 +40,7 @@ class DataReaderTotal(object):
         self.test_cam       = self.yaml_data['test_cam']
         self.cam_list       = self.yaml_data['cam_list']
         self.adaptive_focal = self.yaml_data['adaptive_focal']
+        self.step_rot       = self.yaml_data['step_rot']
         self.default_data_type_lsit = default_data_type_lsit
         self.overwrite_list = overwrite_list
         self.gt_trainset    = None
@@ -71,7 +77,8 @@ class DataReaderTotal(object):
             else:                                                load_type = data_type
             # load data
             if data_type not in ['source', 'cam_param', 'camera_name', 'action', 'confidence']:
-                data = load_data(dataset_name=self.dataset_name, data_type=load_type, canonical_type=self.canonical_type, adaptive_focal=self.adaptive_focal, overwrite_list=self.overwrite_list, verbose=verbose)
+                if 'canonical' in load_type: data = load_data(dataset_name=self.dataset_name, data_type=load_type, canonical_type=self.canonical_type, adaptive_focal=self.adaptive_focal, step_rot=self.step_rot, overwrite_list=self.overwrite_list, verbose=verbose)
+                else: data = load_data(dataset_name=self.dataset_name, data_type=load_type, canonical_type=None, adaptive_focal=self.adaptive_focal, step_rot=self.step_rot, overwrite_list=self.overwrite_list, verbose=verbose)
             # initialize
             for train_type in ['train', 'test']:
                 dt_dataset[train_type][data_type] = []

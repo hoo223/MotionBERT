@@ -1,0 +1,21 @@
+adaptive_focal: false
+cam_list: []
+canonical_type: same_z
+data_type_list:
+- cam_3d
+- joint_2d_from_canonical_3d
+- cam_3d_from_canonical_3d
+dataset_name: h36m
+gt_mode: cam_3d_from_canonical_3d
+input_mode: joint_2d_from_canonical_3d
+input_source: GT
+step_rot: 0.1
+test_cam: []
+test_subject:
+- S5
+- S6
+- S7
+- S8
+train_cam: []
+train_subject:
+- S1

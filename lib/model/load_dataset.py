@@ -43,7 +43,7 @@ def load_dataset(args, use_new_datareader=False):
     for subset in args.subset_list:
         print(subset)
         if use_new_datareader:
-            datareader = DataReaderTotal(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, subset=subset)
+            datareader = DataReaderTotal(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, subset=subset, step_rot=args.step_rot)
         else:
             if 'H36M' in subset: 
                 datareader = DataReaderH36M(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file, input_mode=args.input_mode, gt_mode=args.gt_mode)

@@ -12,6 +12,7 @@ dataset_name: h36m_canonicalization
 gt_mode: joint3d_image_from_canonical_3d
 input_mode: joint_2d_from_canonical_3d
 input_source: GT
+step_rot: 0
 test_cam: []
 test_subject:
 - S9

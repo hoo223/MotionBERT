@@ -46,7 +46,6 @@ class DataReaderPOSEAUG3DHP(object):
     def read_3d(self):
         train_labels = self.dt_dataset['train'][self.mode][::self.sample_stride, :, :3].astype(np.float32)  # [N, 17, 3]
         test_labels = self.dt_dataset['test'][self.mode][::self.sample_stride, :, :3].astype(np.float32)    # [N, 17, 3]
-            
         return train_labels, test_labels
     
     def read_hw(self):
