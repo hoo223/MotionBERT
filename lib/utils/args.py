@@ -14,9 +14,12 @@ def get_opts_args(input_args=None, verbose=True):
         print(opts.pretrained_backbone == '')
     return args, opts
 
-def get_opt_args_from_model_name(checkpoint, config_root = 'configs/pose3d/', checkpoint_root = 'checkpoint/pose3d/', verbose=True):
+def get_opt_args_from_model_name(checkpoint, config_root = 'configs/pose3d/', checkpoint_root = 'checkpoint/pose3d/', mode='best', verbose=True):
+    # mode: best or lastest
     config = checkpoint + '.yaml'
-    input_args = ['--config', config_root+config, '--evaluate', checkpoint_root+checkpoint+'/best_epoch.bin']
+    assert mode in ['best', 'latest'], 'mode should be best or lastest'
+    bin_file = '/' + mode + '_epoch.bin'
+    input_args = ['--config', config_root + config, '--evaluate', checkpoint_root + checkpoint + bin_file]
     args, opts = get_opts_args(input_args, verbose)
     return args, opts
 

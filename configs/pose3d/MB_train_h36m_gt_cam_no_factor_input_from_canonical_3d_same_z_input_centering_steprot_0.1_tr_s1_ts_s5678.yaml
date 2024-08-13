@@ -15,7 +15,7 @@ epochs: 60
 finetune: false
 flip: true
 gt_2d: false
-gt_mode: cam_3d
+gt_mode: cam_3d_from_canonical_3d
 input_mode: joint_2d_from_canonical_3d
 lambda_3d_pos: 1.0
 lambda_3d_velocity: 20.0
