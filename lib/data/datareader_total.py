@@ -209,7 +209,6 @@ class DataReaderTotal(object):
         split_id_train, split_id_test = self.get_split_id()
         train_data, test_data = train_data[split_id_train], test_data[split_id_test]                # (N, 27, 17, 3)
         train_labels, test_labels = train_labels[split_id_train], test_labels[split_id_test]        # (N, 27, 17, 3)
-        # ipdb.set_trace()
         return train_data, test_data, train_labels, test_labels
     
     def denormalize(self, test_data):
@@ -229,3 +228,159 @@ class DataReaderTotal(object):
             return test_data
         else:
             raise ValueError("Invalid mode for denormalize: {}".format(self.gt_mode))
+        
+    def get_clip_info(self, args, num_results_all):
+        _, split_id_test = self.get_split_id() # [range(0, 243) ... range(102759, 103002)] 
+        actions = np.array(self.dt_dataset['test']['action']) # 103130 ['squat' ...  'kneeup']
+        try:
+            factors = np.array(self.dt_dataset['test']['2.5d_factor']) # 103130 [3.49990559 ... 2.09230852]
+        except: # if no factor
+            factors = np.ones_like(actions)
+        gts = np.array(self.dt_dataset['test'][args.mpjpe_mode])
+        sources = np.array(self.dt_dataset['test']['source']) # 103130 ['S02_6_squat_001' ... 'S08_4_kneeup_001']
+
+        num_test_frames = len(actions)
+        frames = np.array(range(num_test_frames))
+        action_clips = np.array([actions[split_id_test[i]] for i in range(len(split_id_test))]) # actions[split_id_test]
+        factor_clips = np.array([factors[split_id_test[i]] for i in range(len(split_id_test))]) # factors[split_id_test]
+        source_clips = np.array([sources[split_id_test[i]] for i in range(len(split_id_test))]) # sources[split_id_test]
+        frame_clips  = np.array([frames[split_id_test[i]] for i in range(len(split_id_test))]) # frames[split_id_test]
+        gt_clips     = np.array([gts[split_id_test[i]] for i in range(len(split_id_test))]) # gts[split_id_test]
+
+        action_clips = action_clips[:num_results_all]
+        factor_clips = factor_clips[:num_results_all]
+        source_clips = source_clips[:num_results_all]
+        frame_clips = frame_clips[:num_results_all]
+        gt_clips = gt_clips[:num_results_all]
+        assert num_results_all==len(action_clips), f'The number of results and action_clips are different: {num_results_all} vs {len(action_clips)}'
+
+        return num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions
+        
+    def get_action_list(self):
+        return sorted(set(self.dt_dataset['test']['action']))
+        
+class DataReaderTotalGroup(object):
+    def __init__(self, n_frames=243, sample_stride=1, data_stride_train=81, data_stride_test=243, read_confidence=True, 
+                 yaml_root='data/motion3d/yaml_files', 
+                 subset_list=[], 
+                 step_rot=0,
+                 overwrite_list = [],
+                 default_data_type_lsit = ['source', 'cam_param', 'camera_name', 'action', 'confidence'],
+                 verbose=True):
+        self.channel_pose_2d = 3 if read_confidence else 2
+        assert len(subset_list) > 0, 'subset_list should be provided'
+        self.datareader = {}
+        self.dt_dataset = {}
+        for subset in subset_list:
+            self.datareader[subset] = DataReaderTotal(n_frames=n_frames, sample_stride=sample_stride, data_stride_train=data_stride_train, data_stride_test=data_stride_test, read_confidence=read_confidence,
+                                                      yaml_root=yaml_root, subset=subset, step_rot=step_rot, overwrite_list=overwrite_list, default_data_type_lsit=default_data_type_lsit, verbose=verbose)
+            self.dt_dataset[subset] = self.datareader[subset].dt_dataset.copy()
+    
+    def normalize(self, data, W_array, H_array, mode):
+        raise NotImplementedError('normalize method should be implemented')
+    
+    def read_2d(self):
+        total_train_data, total_test_data = np.empty([0, 17, self.channel_pose_2d]), np.empty([0, 17, self.channel_pose_2d])
+        num_train_data = num_test_data = 0
+        for subset in self.dt_dataset.keys():
+            datareader = self.datareader[subset]
+            train_data, test_data = datareader.read_2d()
+            num_train_data += train_data.shape[0]
+            num_test_data += test_data.shape[0]
+            total_train_data = np.concatenate([total_train_data, train_data], axis=0)
+            total_test_data = np.concatenate([total_test_data, test_data], axis=0)
+        # check number of data
+        assert total_train_data.shape[0] == num_train_data, f'{total_train_data.shape[0]} {num_train_data}'
+        assert total_test_data.shape[0] == num_test_data, f'{total_test_data.shape[0]} {num_test_data}'
+        return total_train_data, total_test_data
+        
+    def read_3d(self):
+        total_train_labels, total_test_labels = np.empty([0, 17, 3]), np.empty([0, 17, 3])
+        num_train_labels = num_test_labels = 0
+        for subset in self.dt_dataset.keys():
+            datareader = self.datareader[subset]
+            train_labels, test_labels = datareader.read_2d()
+            num_train_labels += train_labels.shape[0]
+            num_test_labels += test_labels.shape[0]
+            total_train_labels = np.concatenate([total_train_labels, train_labels], axis=0)
+            total_test_labels = np.concatenate([total_test_labels, test_labels], axis=0)
+        # check number of data
+        assert total_train_labels.shape[0] == num_train_labels, f'{total_train_labels.shape[0]} {num_train_labels}'
+        assert total_test_labels.shape[0] == num_test_labels, f'{total_test_labels.shape[0]} {num_test_labels}'
+        return total_train_labels, total_test_labels
+    
+    def read_hw(self):
+        total_test_hw = np.empty([0, 2])
+        num_test_hw = 0
+        for subset in self.dt_dataset.keys():
+            datareader = self.datareader[subset]
+            test_hw = datareader.read_hw()
+            num_test_hw += test_hw.shape[0]
+            total_test_hw = np.concatenate([total_test_hw, test_hw], axis=0)
+        # check number of data
+        assert total_test_hw.shape[0] == num_test_hw, f'{total_test_hw.shape[0]} {num_test_hw}'
+        return total_test_hw
+    
+    def get_split_id(self):
+        self.split_id_train, self.split_id_test = [], []
+        for subset in self.dt_dataset.keys():
+            datareader = self.datareader[subset]
+            split_id_train, split_id_test = datareader.get_split_id()
+            self.split_id_train += split_id_train
+            self.split_id_test += split_id_test
+        return self.split_id_train, self.split_id_test
+    
+    def get_hw(self):
+        # Only Testset HW is needed for denormalization
+        test_hw = self.read_hw()                                     # train_data (1559752, 2) test_data (566920, 2)
+        split_id_train, split_id_test = self.get_split_id()
+        test_hw = test_hw[split_id_test][:,0,:]                      # (N, 2)
+        return test_hw
+    
+    def get_sliced_data(self):
+        train_data, test_data = self.read_2d()     # train_data (1559752, 17, 3) test_data (566920, 17, 3)
+        train_labels, test_labels = self.read_3d() # train_labels (1559752, 17, 3) test_labels (566920, 17, 3)
+        split_id_train, split_id_test = self.get_split_id()
+        train_data, test_data = train_data[split_id_train], test_data[split_id_test]                # (N, 27, 17, 3)
+        train_labels, test_labels = train_labels[split_id_train], test_labels[split_id_test]        # (N, 27, 17, 3)
+        return train_data, test_data, train_labels, test_labels
+    
+    def denormalize(self, test_data):
+        pre_len = 0
+        denormalized = np.empty([0, 17, 3])
+        for subset in self.dt_dataset.keys():
+            datareader = self.datareader[subset]
+            test_len = len(datareader.dt_dataset['test'][datareader.gt_mode][::datareader.sample_stride])
+            print(pre_len, pre_len+test_len)
+            denormalized = np.concatenate([denormalized, datareader.denormalize(test_data[pre_len:pre_len+test_len])], axis=0)
+            pre_len += test_len
+        return denormalized
+    
+    def get_clip_info(self, args, num_results_all):
+        total_num_test_frames = 0
+        total_action_clips = np.empty([0, args.clip_len])
+        total_factor_clips = np.empty([0, args.clip_len])
+        total_source_clips = np.empty([0, args.clip_len])
+        total_frame_clips = np.empty([0, args.clip_len], dtype=int)
+        total_gt_clips = np.empty([0, args.clip_len, 17, 3])
+        total_actions = np.empty([0])
+        for subset in self.dt_dataset.keys():
+            datareader = self.datareader[subset]
+            num_test_batch = len(datareader.get_hw())
+            num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions = datareader.get_clip_info(args, num_test_batch)
+            #print(num_test_frames, action_clips.shape, factor_clips.shape, source_clips.shape, frame_clips.shape, gt_clips.shape, actions.shape)
+            total_num_test_frames += num_test_frames
+            total_action_clips = np.concatenate([total_action_clips, action_clips], axis=0)
+            total_factor_clips = np.concatenate([total_factor_clips, factor_clips], axis=0)
+            total_source_clips = np.concatenate([total_source_clips, source_clips], axis=0)
+            total_frame_clips = np.concatenate([total_frame_clips, frame_clips], axis=0)
+            total_gt_clips = np.concatenate([total_gt_clips, gt_clips], axis=0)
+            total_actions = np.concatenate([total_actions, actions], axis=0)
+        return total_num_test_frames, total_action_clips, total_factor_clips, total_source_clips, total_frame_clips, total_gt_clips, total_actions
+    
+    def get_action_list(self):
+        action_list = []
+        for subset in self.dt_dataset.keys():
+            datareader = self.datareader[subset]
+            action_list += datareader.get_action_list()
+        return sorted(set(action_list))

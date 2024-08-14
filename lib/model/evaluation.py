@@ -138,48 +138,42 @@ def inference_eval(args, model_pos, test_loader, datareader, only_one_batch=Fals
 
     return results_all, inputs_all, gts_all
 
-def get_clip_info(args, datareader, results_all):
-    _, split_id_test = datareader.get_split_id() # [range(0, 243) ... range(102759, 103002)] 
-    actions = np.array(datareader.dt_dataset['test']['action']) # 103130 ['squat' ...  'kneeup']
-    try:
-        factors = np.array(datareader.dt_dataset['test']['2.5d_factor']) # 103130 [3.49990559 ... 2.09230852]
-    except: # if no factor
-        factors = np.ones_like(actions)
-    # if datareader.gt_mode == 'joint3d_image': # default
-    #     gts = np.array(datareader.dt_dataset['test']['joints_2.5d_image'])
-    # elif datareader.gt_mode == 'world_3d' or datareader.gt_mode == 'cam_3d' or datareader.gt_mode == 'joint_2d_from_canonical_3d':
-    #     gts = np.array(datareader.dt_dataset['test'][datareader.gt_mode]) # 103130, 17, 3
-    # elif datareader.gt_mode == 'cam_3d_from_canonical_3d':
-    #     gts = np.array(datareader.dt_dataset['test']['cam_3d'])
-    gts = np.array(datareader.dt_dataset['test'][args.mpjpe_mode])
-    sources = np.array(datareader.dt_dataset['test']['source']) # 103130 ['S02_6_squat_001' ... 'S08_4_kneeup_001']
+# def get_clip_info(args, datareader, results_all):
+#     _, split_id_test = datareader.get_split_id() # [range(0, 243) ... range(102759, 103002)] 
+#     actions = np.array(datareader.dt_dataset['test']['action']) # 103130 ['squat' ...  'kneeup']
+#     try:
+#         factors = np.array(datareader.dt_dataset['test']['2.5d_factor']) # 103130 [3.49990559 ... 2.09230852]
+#     except: # if no factor
+#         factors = np.ones_like(actions)
+#     gts = np.array(datareader.dt_dataset['test'][args.mpjpe_mode])
+#     sources = np.array(datareader.dt_dataset['test']['source']) # 103130 ['S02_6_squat_001' ... 'S08_4_kneeup_001']
 
-    num_test_frames = len(actions)
-    frames = np.array(range(num_test_frames))
-    action_clips = np.array([actions[split_id_test[i]] for i in range(len(split_id_test))]) # actions[split_id_test]
-    factor_clips = np.array([factors[split_id_test[i]] for i in range(len(split_id_test))]) # factors[split_id_test]
-    source_clips = np.array([sources[split_id_test[i]] for i in range(len(split_id_test))]) # sources[split_id_test]
-    frame_clips  = np.array([frames[split_id_test[i]] for i in range(len(split_id_test))]) # frames[split_id_test]
-    gt_clips     = np.array([gts[split_id_test[i]] for i in range(len(split_id_test))]) # gts[split_id_test]
+#     num_test_frames = len(actions)
+#     frames = np.array(range(num_test_frames))
+#     action_clips = np.array([actions[split_id_test[i]] for i in range(len(split_id_test))]) # actions[split_id_test]
+#     factor_clips = np.array([factors[split_id_test[i]] for i in range(len(split_id_test))]) # factors[split_id_test]
+#     source_clips = np.array([sources[split_id_test[i]] for i in range(len(split_id_test))]) # sources[split_id_test]
+#     frame_clips  = np.array([frames[split_id_test[i]] for i in range(len(split_id_test))]) # frames[split_id_test]
+#     gt_clips     = np.array([gts[split_id_test[i]] for i in range(len(split_id_test))]) # gts[split_id_test]
 
-    action_clips = action_clips[:len(results_all)]
-    factor_clips = factor_clips[:len(results_all)]
-    source_clips = source_clips[:len(results_all)]
-    frame_clips = frame_clips[:len(results_all)]
-    gt_clips = gt_clips[:len(results_all)]
-    assert len(results_all)==len(action_clips), f'The number of results and action_clips are different: {len(results_all)} vs {len(action_clips)}'
+#     action_clips = action_clips[:len(results_all)]
+#     factor_clips = factor_clips[:len(results_all)]
+#     source_clips = source_clips[:len(results_all)]
+#     frame_clips = frame_clips[:len(results_all)]
+#     gt_clips = gt_clips[:len(results_all)]
+#     assert len(results_all)==len(action_clips), f'The number of results and action_clips are different: {len(results_all)} vs {len(action_clips)}'
 
-    return num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions
+#     return num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions
 
 def calculate_eval_metric(args, results_all, datareader, verbose=True):
-    num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions = get_clip_info(args, datareader, results_all)
+    num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions = datareader.get_clip_info(args, len(results_all))
 
     total_result_dict = {}
     pelvis, r_hip, l_hip, torso, neck, l_shoulder, r_shoulder = 0, 1, 4, 7, 8, 11, 14
     r_knee, r_ankle, l_knee, l_ankle = 2, 3, 5, 6
     l_elbow, l_wrist, r_elbow, r_wrist = 12, 13, 15, 16
     nose, head = 9, 10
-    action_names = sorted(set(datareader.dt_dataset['test']['action']))
+    action_names = datareader.get_action_list() # sorted(set(datareader.dt_dataset['test']['action']))
     if 'H36M-SH' in args.subset_list:
         block_list = ['s_09_act_05_subact_02', 
                     's_09_act_10_subact_02', 
@@ -340,14 +334,14 @@ def calculate_eval_metric(args, results_all, datareader, verbose=True):
     return e1, e2, total_result_dict
 
 def calculate_eval_metric_canonicalization(args, inputs_all, results_all, gts_all, datareader):
-    num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions = get_clip_info(datareader, results_all)
+    num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions = datareader.get_clip_info(args, len(results_all))
 
     total_result_dict = {}
     pelvis, r_hip, l_hip, torso, neck, l_shoulder, r_shoulder = 0, 1, 4, 7, 8, 11, 14
     r_knee, r_ankle, l_knee, l_ankle = 2, 3, 5, 6
     l_elbow, l_wrist, r_elbow, r_wrist = 12, 13, 15, 16
     nose, head = 9, 10
-    action_names = sorted(set(datareader.dt_dataset['test']['action']))
+    action_names = datareader.get_action_list() #sorted(set(datareader.dt_dataset['test']['action']))
     try:
         joint_list = args.eval_keypoint # Use only the specified keypoint number in config
         part = str(args.eval_keypoint)

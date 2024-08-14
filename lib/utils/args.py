@@ -136,7 +136,7 @@ def check_args(args, opts):
         if args.gt_mode == 'cam_3d': args.denormalize_output = False
     # print summary table
     try: test = args.print_summary_table
-    except: args.print_summary_table = True
+    except: args.print_summary_table = False
     # model input, output dim
     try: test = args.dim_in
     except: args.dim_in = 3

@@ -22,7 +22,7 @@ blacklist_checkpoint = ['MB_train_h36m_gt_cam_no_factor_input_from_canonical_3d_
                         'MB_train_h36m_gt_cam_no_factor_input_from_canonical_3d_same_dist_tr_s1_ts_s5678',
                         'MB_train_h36m_gt_cam_no_factor_input_from_canonical_3d_fixed_dist_5',
                         ]
-experiment_list = [item.split('.')[0] for item in os.listdir('experiments') if item not in blacklist_checkpoint]
+experiment_list = [item.split('.txt')[0] for item in os.listdir('experiments') if item not in blacklist_checkpoint]
 
 subset_list = [
     '3DHP-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_FIXED_DIST_5_ADAPTIVE_FOCAL-TEST_ALL_TRAIN',
