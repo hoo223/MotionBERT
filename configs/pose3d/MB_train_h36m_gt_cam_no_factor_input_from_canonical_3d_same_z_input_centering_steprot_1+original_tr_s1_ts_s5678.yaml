@@ -46,6 +46,6 @@ subset_list:
 - H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-STEP_ROT_1-TR_S1_TS_S5678
 - H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-TR_S1_TS_S5678
 synthetic: false
-test_run: true
+test_run: false
 train_2d: false
 weight_decay: 0.01

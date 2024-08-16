@@ -42,10 +42,10 @@ def load_dataset(args, use_new_datareader=False):
         
     if use_new_datareader:
         if len(args.subset_list) >= 1:
-            datareader = DataReaderTotalGroup(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, subset_list=args.subset_list, step_rot=args.step_rot)
-        elif len(args.subset_list) == 1:
-            subset = args.subset_list[0]
-            datareader = DataReaderTotal(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, subset=subset, step_rot=args.step_rot)
+            datareader = DataReaderTotalGroup(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, subset_list=args.subset_list)
+        # elif len(args.subset_list) == 1:
+        #     subset = args.subset_list[0]
+        #     datareader = DataReaderTotal(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, subset=subset, step_rot=args.step_rot)
         else:
             raise ValueError('Subset list is empty')
         train_data, test_data, train_labels, test_labels = datareader.get_sliced_data()
