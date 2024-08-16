@@ -10,7 +10,7 @@ depth: 5
 dim_feat: 512
 dim_rep: 512
 dropout: 0.0
-dt_file: h36m_gt_canonical_3d_same_z_tr_s1_ts_s5678.pkl
+#dt_file: h36m_gt_canonical_3d_same_z_tr_s1_ts_s5678.pkl
 epochs: 60
 finetune: false
 flip: true
