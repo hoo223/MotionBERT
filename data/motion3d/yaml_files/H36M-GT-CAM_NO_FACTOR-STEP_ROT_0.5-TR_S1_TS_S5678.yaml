@@ -8,7 +8,7 @@ dataset_name: h36m
 gt_mode: cam_3d
 input_mode: joint_2d
 input_source: GT
-step_rot: 0
+step_rot: 0.5
 test_cam: []
 test_subject:
 - S5
@@ -18,4 +18,3 @@ test_subject:
 train_cam: []
 train_subject:
 - S1
-- S9

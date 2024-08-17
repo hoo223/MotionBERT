@@ -1,12 +1,13 @@
 adaptive_focal: false
 cam_list: []
-canonical_type: null
+canonical_type: same_z
 data_type_list:
 - cam_3d
-- joint_2d
+- joint_2d_from_canonical_3d
+- cam_3d_from_canonical_3d
 dataset_name: h36m
 gt_mode: cam_3d
-input_mode: joint_2d
+input_mode: joint_2d_from_canonical_3d
 input_source: GT
 step_rot: 0
 test_cam: []
