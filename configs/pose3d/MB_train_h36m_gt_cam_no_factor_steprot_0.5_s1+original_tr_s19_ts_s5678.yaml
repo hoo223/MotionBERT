@@ -30,7 +30,7 @@ mask_T_ratio: 0.0
 mask_ratio: 0.0
 maxlen: 243
 mlp_ratio: 2
-model: MB_train_h36m_gt_cam_no_factor_steprot_0.5_1_1.5+original_tr_s1_ts_s5678
+model: MB_train_h36m_gt_cam_no_factor_steprot_0.5_s1+original_tr_s19_ts_s5678
 no_conf: false
 no_eval: false
 noise: false
@@ -41,12 +41,10 @@ part_list:
 partial_train: null
 rootrel: true
 sample_stride: 1
-#step_rot: 1.5
+step_rot: 0.5
 subset_list:
-- H36M-GT-CAM_NO_FACTOR-STEP_ROT_1.5-TR_S1_TS_S5678
-- H36M-GT-CAM_NO_FACTOR-STEP_ROT_1-TR_S1_TS_S5678
 - H36M-GT-CAM_NO_FACTOR-STEP_ROT_0.5-TR_S1_TS_S5678
-- H36M-GT-CAM_NO_FACTOR-TR_S1_TS_S5678
+- H36M-GT-CAM_NO_FACTOR-TR_S19_TS_S5678
 synthetic: false
 test_run: false
 train_2d: false
