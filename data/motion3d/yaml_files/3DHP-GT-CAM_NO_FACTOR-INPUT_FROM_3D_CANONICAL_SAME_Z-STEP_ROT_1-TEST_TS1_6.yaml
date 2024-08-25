@@ -3,12 +3,16 @@ cam_list: []
 canonical_type: same_z
 data_type_list:
 - cam_3d
-- joint_2d_from_canonical_3d
 - cam_3d_from_canonical_3d
+- joint_2d_from_canonical_3d
 dataset_name: 3dhp
 gt_mode: cam_3d_from_canonical_3d
 input_mode: joint_2d_from_canonical_3d
 input_source: GT
+sinu_pitch_mag: 0
+sinu_pitch_period: 0
+sinu_roll_mag: 0
+sinu_roll_period: 0
 step_rot: 1.0
 test_cam: []
 test_subject:

@@ -79,9 +79,8 @@ class DataReaderTotal(object):
             else:                                                load_type = data_type
             # load data
             if data_type not in ['source', 'cam_param', 'camera_name', 'action', 'confidence']:
-                if 'canonical' in load_type: data = load_data(dataset_name=self.dataset_name, data_type=load_type, canonical_type=self.canonical_type, adaptive_focal=self.adaptive_focal, step_rot=self.step_rot, overwrite_list=self.overwrite_list, verbose=verbose)
-                else: data = load_data(dataset_name=self.dataset_name, data_type=load_type, canonical_type=None, adaptive_focal=self.adaptive_focal, step_rot=self.step_rot, overwrite_list=self.overwrite_list, verbose=verbose)
-            # initialize
+                data = load_data(dataset_name=self.dataset_name, data_type=load_type, canonical_type=self.canonical_type, adaptive_focal=self.adaptive_focal, step_rot=self.step_rot, overwrite_list=self.overwrite_list, verbose=verbose)
+            # initialize dt_dataset
             for train_type in ['train', 'test']:
                 dt_dataset[train_type][data_type] = []
             # assign data

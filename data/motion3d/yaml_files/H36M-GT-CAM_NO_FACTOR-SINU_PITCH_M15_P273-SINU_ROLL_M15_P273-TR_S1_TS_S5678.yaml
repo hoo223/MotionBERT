@@ -3,18 +3,15 @@ cam_list: []
 canonical_type: null
 data_type_list:
 - cam_3d
-- joint3d_image
-- 2.5d_factor
-- joints_2.5d_image
 - joint_2d
 dataset_name: h36m
-gt_mode: joint3d_image
+gt_mode: cam_3d
 input_mode: joint_2d
 input_source: GT
-sinu_pitch_mag: 0
-sinu_pitch_period: 0
-sinu_roll_mag: 0
-sinu_roll_period: 0
+sinu_pitch_mag: 15.0
+sinu_pitch_period: 273.0
+sinu_roll_mag: 15.0
+sinu_roll_period: 273.0
 step_rot: 0
 test_cam: []
 test_subject:

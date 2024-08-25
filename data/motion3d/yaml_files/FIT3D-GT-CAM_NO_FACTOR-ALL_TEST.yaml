@@ -8,6 +8,10 @@ dataset_name: fit3d
 gt_mode: cam_3d
 input_mode: joint_2d
 input_source: GT
+sinu_pitch_mag: 0
+sinu_pitch_period: 0
+sinu_roll_mag: 0
+sinu_roll_period: 0
 step_rot: 0
 test_cam: []
 test_subject:
