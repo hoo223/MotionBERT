@@ -41,7 +41,12 @@ class DataReaderTotal(object):
         self.test_cam       = self.yaml_data['test_cam']
         self.cam_list       = self.yaml_data['cam_list']
         self.adaptive_focal = self.yaml_data['adaptive_focal']
-        self.step_rot       = self.yaml_data['step_rot']
+        self.data_aug = {'step_rot': self.yaml_data['step_rot'], 
+                         'sinu_pitch_mag': self.yaml_data['sinu_pitch_mag'], 
+                         'sinu_pitch_period': self.yaml_data['sinu_pitch_period'],
+                         'sinu_roll_mag': self.yaml_data['sinu_roll_mag'],
+                         'sinu_roll_period': self.yaml_data['sinu_roll_period']}
+        
         self.default_data_type_lsit = default_data_type_lsit
         self.overwrite_list = overwrite_list
         self.gt_trainset    = None
@@ -79,7 +84,7 @@ class DataReaderTotal(object):
             else:                                                load_type = data_type
             # load data
             if data_type not in ['source', 'cam_param', 'camera_name', 'action', 'confidence']:
-                data = load_data(dataset_name=self.dataset_name, data_type=load_type, canonical_type=self.canonical_type, adaptive_focal=self.adaptive_focal, step_rot=self.step_rot, overwrite_list=self.overwrite_list, verbose=verbose)
+                data = load_data(dataset_name=self.dataset_name, data_type=load_type, canonical_type=self.canonical_type, adaptive_focal=self.adaptive_focal, data_aug=self.data_aug, overwrite_list=self.overwrite_list, verbose=verbose)
             # initialize dt_dataset
             for train_type in ['train', 'test']:
                 dt_dataset[train_type][data_type] = []
