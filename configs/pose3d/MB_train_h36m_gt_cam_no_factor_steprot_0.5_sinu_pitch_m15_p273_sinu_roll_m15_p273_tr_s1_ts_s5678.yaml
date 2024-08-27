@@ -30,7 +30,7 @@ mask_T_ratio: 0.0
 mask_ratio: 0.0
 maxlen: 243
 mlp_ratio: 2
-model: MB_train_h36m_gt_cam_no_factor_sinu_pitch_m15_p273_sinu_roll_m15_p273_tr_s1_ts_s5678
+model: MB_train_h36m_gt_cam_no_factor_steprot_0.5_sinu_pitch_m15_p273_sinu_roll_m15_p273_tr_s1_ts_s5678
 no_conf: false
 no_eval: false
 noise: false
