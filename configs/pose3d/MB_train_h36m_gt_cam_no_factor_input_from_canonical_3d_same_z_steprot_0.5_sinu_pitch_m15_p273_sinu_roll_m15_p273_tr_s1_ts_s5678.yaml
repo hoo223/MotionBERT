@@ -3,7 +3,7 @@ train_2d: False
 no_eval: False
 finetune: False
 partial_train: null
-canonical: True
+canonical: False
 test_run: False
 
 # Traning 
@@ -20,7 +20,7 @@ part_list: ['whole']
 denormalize_output: False
 
 # Model
-model: 'MB_train_h36m_gt_cam_no_factor_input_from_canonical_3d_same_z_input_centering_steprot_0.5_sinu_pitch_m15_p273_sinu_roll_m15_p273_tr_s1_ts_s5678'
+model: 'MB_train_h36m_gt_cam_no_factor_input_from_canonical_3d_same_z_steprot_0.5_sinu_pitch_m15_p273_sinu_roll_m15_p273_tr_s1_ts_s5678'
 maxlen: 243
 dim_feat: 512
 mlp_ratio: 2
