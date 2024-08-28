@@ -42,10 +42,19 @@ class DataReaderTotal(object):
         self.cam_list       = self.yaml_data['cam_list']
         self.adaptive_focal = self.yaml_data['adaptive_focal']
         self.data_aug = {'step_rot': self.yaml_data['step_rot'], 
+                         'sinu_yaw_mag': self.yaml_data['sinu_yaw_mag'],
+                         'sinu_yaw_period': self.yaml_data['sinu_yaw_period'],
                          'sinu_pitch_mag': self.yaml_data['sinu_pitch_mag'], 
                          'sinu_pitch_period': self.yaml_data['sinu_pitch_period'],
                          'sinu_roll_mag': self.yaml_data['sinu_roll_mag'],
-                         'sinu_roll_period': self.yaml_data['sinu_roll_period']}
+                         'sinu_roll_period': self.yaml_data['sinu_roll_period'],
+                         'rand_yaw_mag': self.yaml_data['rand_yaw_mag'],
+                         'rand_yaw_period': self.yaml_data['rand_yaw_period'],
+                         'rand_pitch_mag': self.yaml_data['rand_pitch_mag'],
+                         'rand_pitch_period': self.yaml_data['rand_pitch_period'],
+                         'rand_roll_mag': self.yaml_data['rand_roll_mag'],
+                         'rand_roll_period': self.yaml_data['rand_roll_period'],
+                        }
         
         self.default_data_type_lsit = default_data_type_lsit
         self.overwrite_list = overwrite_list

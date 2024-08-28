@@ -1,9 +1,12 @@
+import random
 import os, sys, getpass
 user = getpass.getuser()
 sys.path.append(f'/home/{user}/codes/hpe_library/')
 from lib_import import *
 from my_utils import *
 os.chdir('/home/hrai/codes/MotionBERT')
+
+random.seed(0)
 
 from lib.data.datareader_total import DataReaderTotal
 from lib.data.datareader_h36m import DataReaderH36M
@@ -99,5 +102,7 @@ subset_list = [
     'H36M-GT-CAM_NO_FACTOR-STEP_ROT_1.5-TR_S1_TS_S5678',
     'H36M-GT-CAM_NO_FACTOR-TR_S19_TS_S5678',
     'H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-SINU_PITCH_M15_P273-SINU_ROLL_M15_P273-TR_S1_TS_S5678',
-    'H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-STEP_ROT_0.5-SINU_PITCH_M15_P273-SINU_ROLL_M15_P273-TR_S1_TS_S5678'
+    'H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-STEP_ROT_0.5-SINU_PITCH_M15_P273-SINU_ROLL_M15_P273-TR_S1_TS_S5678', 
+    'H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-RAND_YAW_M45_P100-RAND_PITCH_M45_P100-RAND_ROLL_M30_P100-TR_S1_TS_S5678',
+    'H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-RAND_YAW_M45_P100-RAND_PITCH_M45_P100-RAND_ROLL_M30_P100'
 ]

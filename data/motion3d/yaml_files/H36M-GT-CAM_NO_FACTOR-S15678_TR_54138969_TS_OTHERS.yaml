@@ -8,10 +8,18 @@ dataset_name: h36m
 gt_mode: cam_3d
 input_mode: joint_2d
 input_source: GT
+rand_pitch_mag: 0
+rand_pitch_period: 0
+rand_roll_mag: 0
+rand_roll_period: 0
+rand_yaw_mag: 0
+rand_yaw_period: 0
 sinu_pitch_mag: 0
-sinu_pitch_period: 0
+sinu_pitch_period: 546
 sinu_roll_mag: 0
-sinu_roll_period: 0
+sinu_roll_period: 546
+sinu_yaw_mag: 0
+sinu_yaw_period: 546
 step_rot: 0
 test_cam:
 - '60457274'
