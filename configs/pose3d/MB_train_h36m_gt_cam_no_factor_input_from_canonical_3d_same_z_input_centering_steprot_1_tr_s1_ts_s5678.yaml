@@ -41,7 +41,7 @@ part_list:
 partial_train: null
 rootrel: true
 sample_stride: 1
-step_rot: 1
+step_rot: 0.5
 subset_list:
 - H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-STEP_ROT_1-TR_S1_TS_S5678
 synthetic: false

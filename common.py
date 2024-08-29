@@ -106,3 +106,9 @@ subset_list = [
     'H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-RAND_YAW_M45_P100-RAND_PITCH_M45_P100-RAND_ROLL_M30_P100-TR_S1_TS_S5678',
     'H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-RAND_YAW_M45_P100-RAND_PITCH_M45_P100-RAND_ROLL_M30_P100'
 ]
+
+default_data_aug={'step_rot': 0, 
+        'sinu_yaw_mag': 0, 'sinu_yaw_period': 273, 'sinu_pitch_mag': 0, 'sinu_pitch_period': 273, 
+        'sinu_roll_mag': 0, 'sinu_roll_period': 273,'rand_yaw_mag': 0, 'rand_yaw_period': 0,
+        'rand_pitch_mag': 0, 'rand_pitch_period': 0,'rand_roll_mag': 0, 'rand_roll_period': 0
+        }

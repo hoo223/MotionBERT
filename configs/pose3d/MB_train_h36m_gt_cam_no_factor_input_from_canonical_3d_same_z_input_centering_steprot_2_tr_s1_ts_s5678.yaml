@@ -10,7 +10,7 @@ depth: 5
 dim_feat: 512
 dim_rep: 512
 dropout: 0.0
-#dt_file: h36m_gt_canonical_3d_same_z_tr_s1_ts_s5678.pkl
+dt_file: h36m_gt_canonical_3d_same_z_tr_s1_ts_s5678.pkl
 epochs: 60
 finetune: false
 flip: true
@@ -30,7 +30,7 @@ mask_T_ratio: 0.0
 mask_ratio: 0.0
 maxlen: 243
 mlp_ratio: 2
-model: MB_train_h36m_gt_cam_no_factor_input_from_canonical_3d_same_z_input_centering_steprot_1.5+original_tr_s1_ts_s5678
+model: MB_train_h36m_gt_cam_no_factor_input_from_canonical_3d_same_z_input_centering_steprot_2_tr_s1_ts_s5678
 no_conf: false
 no_eval: false
 noise: false
@@ -41,10 +41,9 @@ part_list:
 partial_train: null
 rootrel: true
 sample_stride: 1
-step_rot: 1.5
+step_rot: 1
 subset_list:
-- H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-STEP_ROT_1.5-TR_S1_TS_S5678
-- H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-TR_S1_TS_S5678
+- H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_SAME_Z-STEP_ROT_2-TR_S1_TS_S5678
 synthetic: false
 test_run: false
 train_2d: false
