@@ -15,21 +15,19 @@ rand_roll_mag: 0
 rand_roll_period: 0
 rand_yaw_mag: 0
 rand_yaw_period: 0
-sinu_pitch_mag: 15.0
+sinu_pitch_mag: 30.0
 sinu_pitch_period: 273.0
-sinu_roll_mag: 15.0
+sinu_roll_mag: 30.0
 sinu_roll_period: 273.0
 sinu_yaw_mag: 0
 sinu_yaw_period: 546
-step_rot: 0.5
+step_rot: 1.0
 test_cam: []
 test_subject:
-- S9
-- S11
-train_cam: []
-train_subject:
-- S1
 - S5
 - S6
 - S7
 - S8
+train_cam: []
+train_subject:
+- S1
