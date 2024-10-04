@@ -1,7 +1,7 @@
 # import sys
 # sys.path.append('/home/hrai/codes/PoseAdaptor/')
-# from lib_import import *
-# from my_utils import *
+# from hpe_library.lib_import import *
+# from hpe_library. my_utils import *
 
 # h36m_3d_world, h36m_cam_param = load_h36m()
 

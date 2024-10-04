@@ -1,9 +1,9 @@
 import os, sys
 sys.path.append('/home/hrai/codes/hpe_library')
-from lib_import import natsorted, plt, Rotation, radians, cos, sin, draw3d_arrow
+from hpe_library.lib_import import natsorted, plt, Rotation, radians, cos, sin, draw3d_arrow
 from my_utils import get_pose_seq_and_cam_param, rotate_torso_by_R, axes_3d, axes_2d, load_h36m, get_rootrel_pose, World2CameraCoordinate, projection, normalize_screen_coordinates, draw_3d_pose, draw_2d_pose, clear_axes, rotation_matrix_from_vectors, Camera, T_to_C
-from lib_import import *
-from my_utils import *
+from hpe_library.lib_import import *
+from hpe_library. my_utils import *
 
 
 import ipywidgets as widgets

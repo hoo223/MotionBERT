@@ -28,8 +28,8 @@ from lib.model.loss import *
 from lib.model.DHDSTformer import DHDSTformer_limb, DHDSTformer_limb2, DHDSTformer_limb3, DHDSTformer_limb4, DHDSTformer_limb5
 
 sys.path.append('/home/hrai/codes/PoseAdaptor')
-from lib_import import *
-from my_utils import *
+from hpe_library.lib_import import *
+from hpe_library. my_utils import *
 os.chdir('/home/hrai/codes/MotionBERT')
 from time import time
 

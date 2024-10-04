@@ -1,7 +1,7 @@
 import sys
 sys.path.append('/home/hrai/codes/hpe_library')
-from lib_import import *
-from my_utils import *
+from hpe_library.lib_import import *
+from hpe_library. my_utils import *
 os.chdir('/home/hrai/codes/MotionBERT')
 
 import os

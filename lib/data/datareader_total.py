@@ -2,8 +2,8 @@
 import os, sys, getpass
 user = getpass.getuser()
 sys.path.append(f'/home/{user}/codes/hpe_library')
-from lib_import import *
-from my_utils import *
+from hpe_library.lib_import import *
+from hpe_library. my_utils import *
 
 from lib.utils.tools import read_pkl
 from lib.utils.utils_data import split_clips

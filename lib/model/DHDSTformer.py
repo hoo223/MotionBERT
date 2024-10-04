@@ -1,8 +1,8 @@
 ## 함수화 하기
 import sys
 sys.path.append('/home/hrai/codes/hpe_library')
-from lib_import import *
-from my_utils import *
+from hpe_library.lib_import import *
+from hpe_library. my_utils import *
 
 from functools import partial
 from lib.model.DSTformer import DSTformer
@@ -962,7 +962,7 @@ class DHDSTformer_limb4(nn.Module):
         # rep: (B, F, 17, dim_rep) hidden representation
 
         # inference
-        rep = self.dstformer_backbone.module.get_representation(batch_input)
+        rep = self.dstformer_backbone.module.get_representation(batch_input) # type: ignore
 
         batch_pelvis     = batch_gt_torso[:, :, 0, :].unsqueeze(2)
         batch_r_hip      = batch_gt_torso[:, :, 1, :].unsqueeze(2)
@@ -1087,7 +1087,7 @@ class DHDSTformer_limb_all_in_one(nn.Module):
         # rep: (B, F, 17, dim_rep) hidden representation
 
         # inference
-        rep = self.dstformer_backbone.module.get_representation(batch_input)
+        rep = self.dstformer_backbone.module.get_representation(batch_input) # type: ignore
         
         # batch_pelvis     = batch_gt_torso[:, :, 0, :].unsqueeze(2)
         # batch_r_hip      = batch_gt_torso[:, :, 1, :].unsqueeze(2)
@@ -1487,8 +1487,8 @@ class DHDSTformer_right_arm3(nn.Module):
 # ## 함수화 하기
 # import sys
 # sys.path.append('/home/hrai/codes/PoseAdaptor')
-# from lib_import import *
-# from my_utils import *
+# from hpe_library.lib_import import *
+# from hpe_library. my_utils import *
 
 # from functools import partial
 # from lib.model.DSTformer import DSTformer
