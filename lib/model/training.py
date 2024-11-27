@@ -38,7 +38,7 @@ def train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2
 
     if args.finetune_only_head:
         for name, parameter in model_pos.named_parameters():
-            if ('head' in name) or ('pre_logits' in name): 
+            if ('head' in name) or ('pre_logits' in name):
                 parameter.requires_grad = True
             else:
                 parameter.requires_grad = False
@@ -48,7 +48,7 @@ def train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2
         if parameter.requires_grad:
             model_params = model_params + parameter.numel()
     print('INFO: Trainable parameter count:', model_params)
-        
+
     if args.partial_train:
         model_pos = partial_train_layers(model_pos, args.partial_train)
 
@@ -68,27 +68,27 @@ def train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2
         if 'optimizer' in checkpoint and checkpoint['optimizer'] is not None:
             optimizer.load_state_dict(checkpoint['optimizer'])
         else:
-            print('WARNING: this checkpoint does not contain an optimizer state. The optimizer will be reinitialized.')            
+            print('WARNING: this checkpoint does not contain an optimizer state. The optimizer will be reinitialized.')
         lr = checkpoint['lr']
         if 'min_loss' in checkpoint and checkpoint['min_loss'] is not None:
             min_loss = checkpoint['min_loss']
-            
+
     args.mask = (args.mask_ratio > 0 and args.mask_T_ratio > 0)
     if args.mask or args.noise:
         args.aug = Augmenter2D(args)
-    
+
     # Training
     for epoch in range(st, args.epochs):
         print('Training epoch %d.' % epoch)
         start_time = time()
         # Initialize loss dict for storing loss values
         losses = generate_loss_dict(args)
-                    
+
         # Curriculum Learning
         if args.train_2d and (epoch >= args.pretrain_3d_curriculum):
             train_epoch(args, model_pos, posetrack_loader_2d, losses, optimizer, has_3d=False, has_gt=True)
             train_epoch(args, model_pos, instav_loader_2d, losses, optimizer, has_3d=False, has_gt=False)
-        train_epoch(args, model_pos, train_loader_3d, losses, optimizer, has_3d=True, has_gt=True) 
+        train_epoch(args, model_pos, train_loader_3d, losses, optimizer, has_3d=True, has_gt=True)
         elapsed = (time() - start_time) / 60
 
         if '3d_pos' in losses: loss_print = losses['3d_pos'].avg
@@ -103,7 +103,7 @@ def train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2
 
         # Update tensorboard
         train_writer = update_train_writer(args, train_writer, losses, e1, e2, lr, epoch, total_result_dict, run)
-            
+
         # Decay learning rate exponentially
         lr *= lr_decay
         for param_group in optimizer.param_groups:
@@ -119,22 +119,22 @@ def train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2
         if e1 < min_loss:
             min_loss = e1
             save_checkpoint(chk_path_best, epoch, args.start_epoch, lr, optimizer, model_pos, min_loss) # save best checkpoint
-        
+
         # For test run, break after one epoch
         try:
             if args.test_run: break
         except:
             pass
-            
+
 def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt):
     model_pos.train()
     pbar = tqdm(train_loader)
-    for (batch_input, batch_gt) in pbar:    
-        batch_size = len(batch_input)        
+    for (batch_input, batch_gt) in pbar:
+        batch_size = len(batch_input)
         # preprocessing
         batch_input, batch_gt, batch_gt_torso, batch_gt_limb, conf = preprocess_train(args, batch_input, batch_gt, has_3d, has_gt)
         # inferece 3D poses
-        if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total6', 'DHDSTformer_total7', 'DHDSTformer_total8']: 
+        if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total6', 'DHDSTformer_total7', 'DHDSTformer_total8']:
             predicted_3d_pos, pred_angle, gt_angle = inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso)
         elif args.model in ['DHDSTformer_total4', 'DHDSTformer_total5']:
             pred_torso, pred_dh_angle, pred_dh_length, pred_lower_frame_R, pred_upper_frame_R, predicted_3d_pos = inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso)
@@ -189,7 +189,7 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
                 loss_3d_velocity = loss_velocity(predicted_3d_pos, batch_gt)
                 loss_total += args.lambda_3d_velocity * loss_3d_velocity
                 losses['3d_vel'].update(loss_3d_velocity.item(), batch_size)
-            if args.lambda_limb_pos > 0: 
+            if args.lambda_limb_pos > 0:
                 loss_3d_pos_limb = loss_mpjpe(pred_limb_pos, batch_gt_limb)
                 loss_total += args.lambda_limb_pos * loss_3d_pos_limb
                 losses['3d_pos_limb'].update(loss_3d_pos_limb.item(), batch_size)
@@ -279,7 +279,7 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
             losses['total'].update(loss_total.item(), batch_size)
         loss_total.backward() # backprop
         optimizer.step()
-        
+
         pbar.set_postfix({key: value.avg for key, value in losses.items()})
         try:
             if args.test_run:
@@ -292,7 +292,7 @@ def preprocess_train(args, batch_input, batch_gt, has_3d, has_gt):
         if torch.cuda.is_available():
             batch_input = batch_input.cuda()
             batch_gt = batch_gt.cuda()
-        
+
         # Train input pre-processing
         if args.no_conf:
             batch_input = batch_input[:, :, :, :2]
@@ -308,7 +308,7 @@ def preprocess_train(args, batch_input, batch_gt, has_3d, has_gt):
             B, F, J, C = batch_input.shape
             scale = torch.norm(batch_input[..., :2].reshape(B, F, 1, 34), dim=-1, keepdim=True)
             batch_input = batch_input / scale
-        
+
         # Train GT pre-processing
         if args.rootrel: # root-relative 3D pose를 추론하도록 훈련
             batch_gt = batch_gt - batch_gt[:,:,0:1,:] # move the pelvis to the origin for all frames
@@ -322,11 +322,12 @@ def preprocess_train(args, batch_input, batch_gt, has_3d, has_gt):
         else:
             batch_gt_torso = None
             batch_gt_limb = None
-    
+
     return batch_input, batch_gt, batch_gt_torso, batch_gt_limb, conf
 
 def inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso):
-    if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total6', 'DHDSTformer_total7', 'DHDSTformer_total8']: 
+    from hpe_library.my_utils.canonical import compute_rotation_matrix, rotate_3d_pose
+    if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total6', 'DHDSTformer_total7', 'DHDSTformer_total8']:
         predicted_3d_pos = model_pos(batch_input, length_type=args.train_length_type, ref_frame=args.length_frame)
         if args.lambda_dh_angle > 0:
             pred_angle = get_limb_angle(predicted_3d_pos)
@@ -335,7 +336,7 @@ def inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso):
             pred_angle = None
             gt_angle = None
         return predicted_3d_pos, pred_angle, gt_angle
-    
+
     elif args.model in ['DHDSTformer_total4', 'DHDSTformer_total5']:
         pred_torso, pred_dh_angle, pred_dh_length, pred_lower_frame_R, pred_upper_frame_R, predicted_3d_pos = model_pos(batch_input)
         return pred_torso, pred_dh_angle, pred_dh_length, pred_lower_frame_R, pred_upper_frame_R, predicted_3d_pos
@@ -344,17 +345,17 @@ def inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso):
         predicted_3d_pos = model_pos(batch_input, batch_gt_torso)
         pred_limb_pos = predicted_3d_pos[:, :, [2, 3, 5, 6, 12, 13, 15, 16], :]
         return predicted_3d_pos, pred_limb_pos
-    
+
     elif 'DHDSTformer_torso' in args.model:
         # inference
         pred_torso, pred_lower_frame_R, pred_upper_frame_R = model_pos(batch_input)
         return pred_torso, pred_lower_frame_R, pred_upper_frame_R
-    
+
     elif 'DHDSTformer_torso2' in args.model:
         pred_torso = model_pos(batch_input)
         batch_gt_torso = batch_gt[:, :, [0, 1, 4, 8, 11, 14], :] # r_hip, l_hip, neck, l_shoulder, r_shoulder
         return pred_torso, batch_gt_torso
-    
+
     elif 'DHDST_onevec' in args.model:
         input, gt_root_point, gt_length, gt_angle = get_input_gt_for_onevec(batch_input, batch_gt)
         pred_root_point, pred_length, pred_angle = model_pos(input)
@@ -369,21 +370,25 @@ def inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso):
         if args.rootrel:
             gt_3d_pos = gt_root_point - gt_3d_pos[:, :, 0:1, :]
         else:
-            gt_3d_pos[:, :, :, 2] = gt_3d_pos[:, :, :, 2] - gt_3d_pos[:, 0:1, 0:1, 2] 
+            gt_3d_pos[:, :, :, 2] = gt_3d_pos[:, :, :, 2] - gt_3d_pos[:, 0:1, 0:1, 2]
         return pred_3d_pos, gt_3d_pos, pred_root_point, gt_root_point, pred_length, gt_length
-    
+
     elif 'DHDSTformer_right_arm' == args.model:
         batch_gt_limb = batch_gt[:, :, [14, 15, 16], :]
         pred_limb_pos = model_pos(batch_input)
         return pred_limb_pos, batch_gt_limb
-    
+
     elif ('DHDSTformer_right_arm2' == args.model) or ('DHDSTformer_right_arm3' == args.model):
         batch_gt_limb = batch_gt[:, :, [0, 14, 15, 16], :]
-        pred_limb_pos = model_pos(batch_input) 
+        pred_limb_pos = model_pos(batch_input)
         return pred_limb_pos, batch_gt_limb
-    
+
     else:
         predicted_3d_pos = model_pos(batch_input)    # (N, T, 17, 3)
+        if args.fix_orientation:
+            rotation_matrices = compute_rotation_matrix(batch_input)
+            predicted_3d_pos = rotate_3d_pose(predicted_3d_pos, rotation_matrices)
+
         if args.lambda_dh_angle > 0:
             pred_angle = get_limb_angle(predicted_3d_pos)
             gt_angle = get_limb_angle(batch_gt)
@@ -391,7 +396,7 @@ def inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso):
             pred_angle = None
             gt_angle = None
         return predicted_3d_pos, pred_angle, gt_angle
-    
+
 def generate_loss_dict(args):
     losses = {}
     if args.lambda_3d_pos > 0:                losses['3d_pos'] = AverageMeter()
@@ -428,67 +433,67 @@ def update_train_writer(args, train_writer, losses, e1, e2, lr, epoch, total_res
     train_writer.add_scalar('loss_total', losses['total'].avg, epoch + 1)
     train_writer.add_scalar('loss_2d_proj', losses['2d_proj'].avg, epoch + 1)
     if run is not None: run.log({"Error P1": e1, "Error P2": e2, "lr": lr, "loss_total": losses['total'].avg, "loss_2d_proj": losses['2d_proj'].avg})
-    if args.lambda_3d_pos > 0:                
+    if args.lambda_3d_pos > 0:
         train_writer.add_scalar('loss_3d_pos', losses['3d_pos'].avg, epoch + 1)
         if run is not None: run.log({"loss_3d_pos": losses['3d_pos'].avg})
-    if args.lambda_scale > 0:                 
+    if args.lambda_scale > 0:
         train_writer.add_scalar('loss_3d_scale', losses['3d_scale'].avg, epoch + 1)
         if run is not None: run.log({"loss_3d_scale": losses['3d_scale'].avg})
-    if args.lambda_3d_velocity > 0:           
+    if args.lambda_3d_velocity > 0:
         train_writer.add_scalar('loss_3d_velocity', losses['3d_vel'].avg, epoch + 1)
         if run is not None: run.log({"loss_3d_velocity": losses['3d_vel'].avg})
-    if args.lambda_limb_pos > 0:              
+    if args.lambda_limb_pos > 0:
         train_writer.add_scalar('loss_3d_pos_limb', losses['3d_pos_limb'].avg, epoch + 1)
         if run is not None: run.log({"loss_3d_pos_limb": losses['3d_pos_limb'].avg})
-    if args.lambda_limb_scale > 0:            
+    if args.lambda_limb_scale > 0:
         train_writer.add_scalar('loss_3d_scale_limb', losses['3d_scale_limb'].avg, epoch + 1)
         if run is not None: run.log({"loss_3d_scale_limb": losses['3d_scale_limb'].avg})
-    if args.lambda_limb_velocity > 0:         
+    if args.lambda_limb_velocity > 0:
         train_writer.add_scalar('loss_3d_velocity_limb', losses['3d_vel_limb'].avg, epoch + 1)
         if run is not None: run.log({"loss_3d_velocity_limb": losses['3d_vel_limb'].avg})
-    if args.lambda_torso_pos > 0:             
+    if args.lambda_torso_pos > 0:
         train_writer.add_scalar('loss_3d_pos_torso', losses['3d_pos_torso'].avg, epoch + 1)
         if run is not None: run.log({"loss_3d_pos_torso": losses['3d_pos_torso'].avg})
-    if args.lambda_lower_frame_R > 0:         
+    if args.lambda_lower_frame_R > 0:
         train_writer.add_scalar('loss_lower_frame_R', losses['lower_frame_R'].avg, epoch + 1)
         if run is not None: run.log({"loss_lower_frame_R": losses['lower_frame_R'].avg})
-    if args.lambda_upper_frame_R > 0:         
+    if args.lambda_upper_frame_R > 0:
         train_writer.add_scalar('loss_upper_frame_R', losses['upper_frame_R'].avg, epoch + 1)
         if run is not None: run.log({"loss_upper_frame_R": losses['upper_frame_R'].avg})
-    if args.lambda_lv > 0:                    
+    if args.lambda_lv > 0:
         train_writer.add_scalar('loss_lv', losses['lv'].avg, epoch + 1)
         if run is not None: run.log({"loss_lv": losses['lv'].avg})
-    if args.lambda_lg > 0:                    
+    if args.lambda_lg > 0:
         train_writer.add_scalar('loss_lg', losses['lg'].avg, epoch + 1)
         if run is not None: run.log({"loss_lg": losses['lg'].avg})
-    if args.lambda_a > 0:                     
+    if args.lambda_a > 0:
         train_writer.add_scalar('loss_a', losses['angle'].avg, epoch + 1)
         if run is not None: run.log({"loss_a": losses['angle'].avg})
-    if args.lambda_av > 0:                    
+    if args.lambda_av > 0:
         train_writer.add_scalar('loss_av', losses['angle_vel'].avg, epoch + 1)
         if run is not None: run.log({"loss_av": losses['angle_vel'].avg})
-    if args.lambda_sym > 0:                   
+    if args.lambda_sym > 0:
         train_writer.add_scalar('loss_sym', losses['sym'].avg, epoch + 1)
         if run is not None: run.log({"loss_sym": losses['sym'].avg})
-    if args.lambda_root_point > 0:            
+    if args.lambda_root_point > 0:
         train_writer.add_scalar('loss_root_point', losses['root_point'].avg, epoch + 1)
         if run is not None: run.log({"loss_root_point": losses['root_point'].avg})
-    if args.lambda_length > 0:                
+    if args.lambda_length > 0:
         train_writer.add_scalar('loss_length', losses['length'].avg, epoch + 1)
         if run is not None: run.log({"loss_length": losses['length'].avg})
-    if args.lambda_dh_angle > 0:              
+    if args.lambda_dh_angle > 0:
         train_writer.add_scalar('loss_dh_angle', losses['dh_angle'].avg, epoch + 1)
         if run is not None: run.log({"loss_dh_angle": losses['dh_angle'].avg})
-    if args.lambda_onevec_pos:                
+    if args.lambda_onevec_pos:
         train_writer.add_scalar('loss_onevec_pos', losses['onevec_pos'].avg, epoch + 1)
         if run is not None: run.log({"loss_onevec_pos": losses['onevec_pos'].avg})
-    if args.lambda_dh_angle2 > 0:             
+    if args.lambda_dh_angle2 > 0:
         train_writer.add_scalar('loss_dh_angle2', losses['dh_angle2'].avg, epoch + 1)
         if run is not None: run.log({"loss_dh_angle2": losses['dh_angle2'].avg})
-    if args.lambda_dh_length > 0:             
+    if args.lambda_dh_length > 0:
         train_writer.add_scalar('loss_dh_length', losses['dh_length'].avg, epoch + 1)
         if run is not None: run.log({"loss_dh_length": losses['dh_length'].avg})
-    if args.lambda_canonical_2d_residual > 0: 
+    if args.lambda_canonical_2d_residual > 0:
         train_writer.add_scalar('loss_canon_2d_residual', losses['canonical_2d_residual'].avg, epoch + 1)
         if run is not None: run.log({"loss_canon_2d_residual": losses['canonical_2d_residual'].avg})
     if 'arms' in args.part_list:

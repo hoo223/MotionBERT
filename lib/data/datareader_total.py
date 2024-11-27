@@ -32,6 +32,7 @@ class DataReaderTotal(object):
         self.input_source   = self.yaml_data['input_source']
         self.input_mode     = self.yaml_data['input_mode']
         self.gt_mode        = self.yaml_data['gt_mode']
+        self.univ           = self.yaml_data['univ']
         try:
             self.train_subject  = self.yaml_data['train_subject']
         except:
@@ -93,7 +94,7 @@ class DataReaderTotal(object):
             else:                                                load_type = data_type
             # load data
             if data_type not in ['source', 'cam_param', 'camera_name', 'action', 'confidence']:
-                data = load_data(dataset_name=self.dataset_name, data_type=load_type, canonical_type=self.canonical_type, adaptive_focal=self.adaptive_focal, data_aug=self.data_aug, overwrite_list=self.overwrite_list, verbose=verbose)
+                data = load_data(dataset_name=self.dataset_name, data_type=load_type, canonical_type=self.canonical_type, univ=self.univ, adaptive_focal=self.adaptive_focal, data_aug=self.data_aug, overwrite_list=self.overwrite_list, verbose=verbose)
             # initialize dt_dataset
             for train_type in ['train', 'test']:
                 dt_dataset[train_type][data_type] = []

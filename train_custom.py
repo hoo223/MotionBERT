@@ -28,7 +28,7 @@ def set_random_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    
+
 def get_project_name(args):
     item = args.model
     project_name = ''
@@ -44,14 +44,14 @@ def get_project_name(args):
         project_name += 'FIT3D'
     elif 'kookmin' in item:
         project_name += 'KOOKMIN'
-        
+
     if '_ts_s4710' in item:
         project_name += '-TS_S4710'
     elif '_tr_s1_ts_s5678' in item:
         project_name += '-TR_S1_TS_S5678'
     elif '_s15678_tr_54138969_ts_others' in item:
         project_name += '-S15678_TR_54138969_TS_OTHERS'
-    
+
     return project_name
 
 def main(args, opts, run=None):
@@ -81,5 +81,4 @@ if __name__ == "__main__":
     main(args, opts)
     # if run != None:
     #     wandb.finish()
-    
-    
+

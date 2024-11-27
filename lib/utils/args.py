@@ -1,5 +1,5 @@
 import argparse
-from lib.utils.tools import * 
+from lib.utils.tools import *
 
 def list_of_strings(arg):
     return arg.split(',')
@@ -39,7 +39,7 @@ def parse_args(input_args=None):
     if type(input_args) == type(None):
         opts = parser.parse_args()
     else:
-        opts = parser.parse_args(input_args)        
+        opts = parser.parse_args(input_args)
     return opts
 
 def check_args(args, opts):
@@ -54,7 +54,7 @@ def check_args(args, opts):
     try: test = args.part_list
     except: args.part_list = ['whole']
     try: test = args.eval_part
-    except:  
+    except:
         if 'whole' in args.part_list: args.eval_part = 'whole'
         else: args.eval_part = args.part_list[0]
     # loss weights
@@ -123,7 +123,7 @@ def check_args(args, opts):
     try: test = args.gt_mode
     except: args.gt_mode = 'joint3d_image' # joint3d_image, cam_3d, world_3d
     try: test = args.mpjpe_mode
-    except: 
+    except:
         if args.gt_mode == 'joint3d_image': args.mpjpe_mode = 'joints_2.5d_image'
         else: args.mpjpe_mode = args.gt_mode
     # default steprot
@@ -131,7 +131,7 @@ def check_args(args, opts):
     #except: args.step_rot = 0
     # denormalize oupput of the model (3d pose)
     try: test = args.denormalize_output
-    except: 
+    except:
         args.denormalize_output = True
         if args.gt_mode == 'cam_3d': args.denormalize_output = False
     # print summary table
@@ -142,6 +142,8 @@ def check_args(args, opts):
     except: args.dim_in = 3
     try: test = args.dim_out
     except: args.dim_out = 3
-    
+    # fix orientation
+    try: test = args.fix_orientation
+    except: args.fix_orientation = False
+
     return args, opts
-    
