@@ -13,10 +13,10 @@ from lib.data.augmentation import Augmenter2D
 from lib.utils.learning import * # partial_train_layers, AverageMeter
 
 sys.path.append('/home/hrai/codes/hpe_library')
-from my_utils import get_limb_angle, get_batch_lower_torso_frame_from_pose, get_batch_upper_torso_frame_from_pose, matrix_to_quaternion, batch_azim_elev_to_vec, get_input_gt_for_onevec, BatchDHModel
+from hpe_library.my_utils import get_limb_angle, get_batch_lower_torso_frame_from_pose, get_batch_upper_torso_frame_from_pose, matrix_to_quaternion, batch_azim_elev_to_vec, get_input_gt_for_onevec, BatchDHModel
 from lib.model.loss import *
 from lib.model.evaluation import *
-
+##
 def save_checkpoint(chk_path, epoch, start_epoch, lr, optimizer, model_pos, min_loss):
     print('Saving checkpoint to', chk_path)
     torch.save({
@@ -27,7 +27,7 @@ def save_checkpoint(chk_path, epoch, start_epoch, lr, optimizer, model_pos, min_
         'model_pos': model_pos.state_dict(),
         'min_loss' : min_loss
     }, chk_path)
-
+##
 def train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2d, instav_loader_2d, test_loader, datareader, run=None):
     try:
         os.makedirs(opts.checkpoint)
@@ -125,13 +125,15 @@ def train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2
             if args.test_run: break
         except:
             pass
-
+##
 def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt):
+    from hpe_library.my_utils.canonical import batch_rotation_matrix_from_vectors_torch, batch_inverse_rotation_matrices
     model_pos.train()
     pbar = tqdm(train_loader)
     for (batch_input, batch_gt) in pbar:
         batch_size = len(batch_input)
         # preprocessing
+        batch_gt_original = batch_gt.clone().detach().cuda()
         batch_input, batch_gt, batch_gt_torso, batch_gt_limb, conf = preprocess_train(args, batch_input, batch_gt, has_3d, has_gt)
         # inferece 3D poses
         if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total6', 'DHDSTformer_total7', 'DHDSTformer_total8']:
@@ -172,12 +174,22 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
             pred_limb_pos, batch_gt_limb = inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso)
         else:
             predicted_3d_pos, pred_angle, gt_angle = inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso)
+
+        # postprocessing
+        # predicted_3d_pos = postprocess_train(args, predicted_3d_pos, )
+        if args.fix_orientation_pred:
+            batch_v_origin_to_pelvis = batch_gt_original[:, :, 0]
+            batch_v_origin_to_principle = torch.tensor([0, 0, 1], device=batch_gt.device).reshape(1, 1, 3).repeat(batch_gt.shape[0], batch_gt.shape[1], 1).float().to(batch_gt_original.device)
+            assert batch_v_origin_to_principle.shape == batch_v_origin_to_pelvis.shape, (batch_v_origin_to_principle.shape, batch_v_origin_to_pelvis.shape)
+            batch_rot_virt_to_real = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_principle, batch_v_origin_to_pelvis)
+            batch_rot_virt_to_real_inv = batch_inverse_rotation_matrices(batch_rot_virt_to_real)
+            predicted_3d_pos = torch.einsum('bfij,bfjk->bfik', predicted_3d_pos, batch_rot_virt_to_real_inv) # rotate back the predicted 3D poses from canonical to the orginal pelvis position
+
+        # loss calculation
         optimizer.zero_grad()
         if has_3d:
             loss_total = 0
             if args.lambda_3d_pos > 0:
-                # print(torch.norm(predicted_3d_pos), torch.norm(batch_gt))
-                #print(predicted_3d_pos[0][0], batch_gt[0][0])
                 loss_3d_pos = loss_mpjpe(predicted_3d_pos, batch_gt)
                 loss_total += args.lambda_3d_pos * loss_3d_pos
                 losses['3d_pos'].update(loss_3d_pos.item(), batch_size)
@@ -286,7 +298,7 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
                 break
         except:
             pass
-
+##
 def preprocess_train(args, batch_input, batch_gt, has_3d, has_gt):
     with torch.no_grad():
         if torch.cuda.is_available():
@@ -302,19 +314,28 @@ def preprocess_train(args, batch_input, batch_gt, has_3d, has_gt):
             conf = None
         if args.mask or args.noise: # input augmentation for noise
             batch_input = args.aug.augment2D(batch_input, noise=(args.noise and has_gt), mask=args.mask)
-        if args.canonical:
+        if args.input_centering:
             batch_input = batch_input - batch_input[:, :, 0:1, :] # root-relative
         if args.norm_input_scale:
             B, F, J, C = batch_input.shape
             scale = torch.norm(batch_input[..., :2].reshape(B, F, 1, 34), dim=-1, keepdim=True)
             batch_input = batch_input / scale
 
-        # Train GT pre-processing
+        # Test GT pre-processing
+        if args.fix_orientation_gt:
+            batch_v_origin_to_pelvis = batch_gt[:, :, 0]
+            batch_v_origin_to_principle = torch.tensor([0, 0, 1], device=batch_gt.device).reshape(1, 1, 3).repeat(batch_gt.shape[0], batch_gt.shape[1], 1).float()
+            assert batch_v_origin_to_principle.shape == batch_v_origin_to_pelvis.shape, (batch_v_origin_to_principle.shape, batch_v_origin_to_pelvis.shape)
+            batch_rot_real_to_virt = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_pelvis, batch_v_origin_to_principle)
+            batch_rot_real_to_virt_inv = batch_inverse_rotation_matrices(batch_rot_real_to_virt)
+            batch_gt_virt = torch.einsum('bfij,bfjk->bfik', batch_gt, batch_rot_real_to_virt_inv)
+            batch_gt = batch_gt_virt
+
         if args.rootrel: # root-relative 3D pose를 추론하도록 훈련
             batch_gt = batch_gt - batch_gt[:,:,0:1,:] # move the pelvis to the origin for all frames
         else:
             batch_gt[:,:,:,2] = batch_gt[:,:,:,2] - batch_gt[:,0:1,0:1,2] # Place the depth of first frame root to 0. -> 첫번째 프레임의 depth를 0으로 설정
-        if args.canonical:
+        if args.input_centering:
             batch_gt = batch_gt - batch_gt[:, :, 0:1, :]
         if batch_gt.shape[2] == 17:
             batch_gt_torso = batch_gt[:, :, [0, 1, 4, 7, 8, 9, 10, 11, 14], :]
@@ -324,9 +345,9 @@ def preprocess_train(args, batch_input, batch_gt, has_3d, has_gt):
             batch_gt_limb = None
 
     return batch_input, batch_gt, batch_gt_torso, batch_gt_limb, conf
-
+##
 def inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso):
-    from hpe_library.my_utils.canonical import compute_rotation_matrix, rotate_3d_pose
+    from hpe_library.my_utils.canonical import batch_rotation_matrix_from_vectors_torch, batch_inverse_rotation_matrices
     if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total6', 'DHDSTformer_total7', 'DHDSTformer_total8']:
         predicted_3d_pos = model_pos(batch_input, length_type=args.train_length_type, ref_frame=args.length_frame)
         if args.lambda_dh_angle > 0:
@@ -374,7 +395,8 @@ def inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso):
         return pred_3d_pos, gt_3d_pos, pred_root_point, gt_root_point, pred_length, gt_length
 
     elif 'DHDSTformer_right_arm' == args.model:
-        batch_gt_limb = batch_gt[:, :, [14, 15, 16], :]
+        batch_gt_limb = batch_gt[:, :, [14, 15,
+                                        16], :]
         pred_limb_pos = model_pos(batch_input)
         return pred_limb_pos, batch_gt_limb
 
@@ -385,10 +407,6 @@ def inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso):
 
     else:
         predicted_3d_pos = model_pos(batch_input)    # (N, T, 17, 3)
-        if args.fix_orientation:
-            rotation_matrices = compute_rotation_matrix(batch_input)
-            predicted_3d_pos = rotate_3d_pose(predicted_3d_pos, rotation_matrices)
-
         if args.lambda_dh_angle > 0:
             pred_angle = get_limb_angle(predicted_3d_pos)
             gt_angle = get_limb_angle(batch_gt)
@@ -396,7 +414,7 @@ def inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso):
             pred_angle = None
             gt_angle = None
         return predicted_3d_pos, pred_angle, gt_angle
-
+##
 def generate_loss_dict(args):
     losses = {}
     if args.lambda_3d_pos > 0:                losses['3d_pos'] = AverageMeter()
@@ -423,7 +441,7 @@ def generate_loss_dict(args):
     losses['total'] = AverageMeter()
     losses['2d_proj'] = AverageMeter()
     return losses
-
+##
 def update_train_writer(args, train_writer, losses, e1, e2, lr, epoch, total_result_dict, run=None):
     # e1: MPJPE
     # e2: PA-MPJPE

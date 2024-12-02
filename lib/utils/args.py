@@ -102,9 +102,9 @@ def check_args(args, opts):
     except: args.lambda_canonical_2d_residual = 0.0
     try: test = args.canonical_loss
     except: args.canonical_loss = 'mpjpe'
-    # canonical input
-    try: test = args.canonical
-    except: args.canonical = False
+    # input centering
+    try: test = args.input_centering
+    except: args.input_centering = False
     try: test = args.norm_input_scale
     except: args.norm_input_scale = False
     # finetune only head
@@ -143,7 +143,9 @@ def check_args(args, opts):
     try: test = args.dim_out
     except: args.dim_out = 3
     # fix orientation
-    try: test = args.fix_orientation
-    except: args.fix_orientation = False
+    try: test = args.fix_orientation_pred
+    except: args.fix_orientation_pred = False
+    try: test = args.fix_orientation_gt
+    except: args.fix_orientation_gt = False
 
     return args, opts

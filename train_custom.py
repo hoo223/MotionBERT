@@ -68,7 +68,8 @@ def main(args, opts, run=None):
 if __name__ == "__main__":
     args, opts = get_opts_args()
     set_random_seed(opts.seed)
-    print(args)
+    for key, value in sorted(vars(args).items()):
+        print(f"- {key}: {value}")
     # if opts.evaluate == '':
     #     # run = wandb.init(
     #     #     project=get_project_name(args),

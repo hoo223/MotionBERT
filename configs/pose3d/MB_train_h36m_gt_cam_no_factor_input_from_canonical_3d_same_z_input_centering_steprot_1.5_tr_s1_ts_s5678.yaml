@@ -1,6 +1,6 @@
 att_fuse: true
 batch_size: 16
-canonical: true
+input_centering: true
 checkpoint_frequency: 30
 clip_len: 243
 data_root: data/motion3d/MB3D_f243s81/

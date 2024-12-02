@@ -2,7 +2,7 @@
 train_2d: False
 no_eval: False
 finetune: False
-canonical: True
+input_centering: True
 partial_train: null
 test_run: False
 

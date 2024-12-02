@@ -32,6 +32,7 @@ def evaluate(args, model_pos, test_loader, datareader, checkpoint, only_one_batc
     return e1, e2, results_all, inputs_all, gts_all, total_result_dict
 
 def preprocess_eval(args, batch_input, batch_gt):
+    from hpe_library.my_utils.canonical import batch_rotation_matrix_from_vectors_torch, batch_inverse_rotation_matrices
     if torch.cuda.is_available():
         batch_input = batch_input.cuda()
         batch_gt = batch_gt.cuda()
@@ -39,30 +40,37 @@ def preprocess_eval(args, batch_input, batch_gt):
     # Test input pre-processing
     if args.no_conf:
         batch_input = batch_input[:, :, :, :2]
-    if args.canonical:
-        batch_input = batch_input - batch_input[:, :, 0:1, :] # root-relative
+    if args.input_centering:
+        batch_input = batch_input - batch_input[:, :, 0:1, :] # input centering
     if args.norm_input_scale:
         B, F, J, C = batch_input.shape
         scale = torch.norm(batch_input[..., :2].reshape(B, F, 1, 34), dim=-1, keepdim=True)
         batch_input = batch_input / scale
 
     # Test GT pre-processing
+    if args.fix_orientation_gt:
+        batch_v_origin_to_pelvis = batch_gt[:, :, 0]
+        batch_v_origin_to_principle = torch.tensor([0, 0, 1], device=batch_gt.device).reshape(1, 1, 3).repeat(batch_gt.shape[0], batch_gt.shape[1], 1).float()
+        assert batch_v_origin_to_principle.shape == batch_v_origin_to_pelvis.shape, (batch_v_origin_to_principle.shape, batch_v_origin_to_pelvis.shape)
+        batch_rot_real_to_virt = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_pelvis, batch_v_origin_to_principle)
+        batch_rot_real_to_virt_inv = batch_inverse_rotation_matrices(batch_rot_real_to_virt)
+        batch_gt_virt = torch.einsum('bfij,bfjk->bfik', batch_gt, batch_rot_real_to_virt_inv)
+        batch_gt = batch_gt_virt
+
     if args.rootrel:
         batch_gt = batch_gt - batch_gt[:,:,0:1,:]
     else:
         batch_gt[:,0,0,2] = 0
-    if args.canonical:
-        batch_gt = batch_gt - batch_gt[:, :, 0:1, :]
     if batch_gt.shape[2] == 17:
         batch_gt_torso = batch_gt[:, :, [0, 1, 4, 7, 8, 9, 10, 11, 14], :]
         batch_gt_limb_pos = batch_gt[:, :, [2, 3, 5, 6, 12, 13, 15, 16], :]
     else:
         batch_gt_torso = None
         batch_gt_limb_pos = None
+
     return batch_input, batch_gt, batch_gt_torso, batch_gt_limb_pos
 
-def batch_inference_eval(args, model_pos, batch_input, batch_gt_torso, batch_gt_limb_pos):
-    from hpe_library.my_utils.canonical import compute_rotation_matrix, rotate_3d_pose
+def batch_inference_eval(args, model_pos, batch_input, batch_gt, batch_gt_torso, batch_gt_limb_pos):
     if args.flip:
         batch_input_flip = flip_data(batch_input)
         if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total6', 'DHDSTformer_total7', 'DHDSTformer_total8']:
@@ -92,9 +100,6 @@ def batch_inference_eval(args, model_pos, batch_input, batch_gt_torso, batch_gt_
             predicted_3d_pos_flip = model_pos(batch_input_flip)
             predicted_3d_pos_2 = flip_data(predicted_3d_pos_flip)                   # Flip back
             predicted_3d_pos = (predicted_3d_pos_1+predicted_3d_pos_2) / 2
-            if args.fix_orientation:
-                rotation_matrices = compute_rotation_matrix(batch_input)
-                predicted_3d_pos = rotate_3d_pose(predicted_3d_pos, rotation_matrices)
     else:
         if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total6', 'DHDSTformer_total7', 'DHDSTformer_total8']:
             predicted_3d_pos = model_pos(batch_input, length_type=args.test_length_type, ref_frame=args.length_frame)
@@ -110,13 +115,11 @@ def batch_inference_eval(args, model_pos, batch_input, batch_gt_torso, batch_gt_
             predicted_3d_pos = pred_torso
         else:
             predicted_3d_pos = model_pos(batch_input)
-            if args.fix_orientation:
-                rotation_matrices = compute_rotation_matrix(batch_input)
-                predicted_3d_pos = rotate_3d_pose(predicted_3d_pos, rotation_matrices)
 
     return predicted_3d_pos
 
 def inference_eval(args, model_pos, test_loader, datareader, only_one_batch=False):
+    from hpe_library.my_utils.canonical import batch_rotation_matrix_from_vectors_torch, batch_inverse_rotation_matrices
     results_all = []
     gts_all = []
     inputs_all = []
@@ -124,10 +127,18 @@ def inference_eval(args, model_pos, test_loader, datareader, only_one_batch=Fals
         for batch_input, batch_gt in tqdm(test_loader): # batch_input: normalized joint_2d, batch_gt: normalized joint3d_image
             batch_size = len(batch_input)
             # preprocessing
+            batch_gt_original = batch_gt.clone().detach().cuda()
             batch_input, batch_gt, batch_gt_torso, batch_gt_limb_pos = preprocess_eval(args, batch_input, batch_gt)
             # inference
-            predicted_3d_pos = batch_inference_eval(args, model_pos, batch_input, batch_gt_torso, batch_gt_limb_pos)
+            predicted_3d_pos = batch_inference_eval(args, model_pos, batch_input, batch_gt, batch_gt_torso, batch_gt_limb_pos)
             # postprocessing
+            if args.fix_orientation_pred:
+                batch_v_origin_to_pelvis = batch_gt_original[:, :, 0]
+                batch_v_origin_to_principle = torch.tensor([0, 0, 1], device=batch_gt.device).reshape(1, 1, 3).repeat(batch_gt.shape[0], batch_gt.shape[1], 1).float().to(batch_gt.device)
+                assert batch_v_origin_to_principle.shape == batch_v_origin_to_pelvis.shape, (batch_v_origin_to_principle.shape, batch_v_origin_to_pelvis.shape)
+                batch_rot_virt_to_real = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_principle, batch_v_origin_to_pelvis)
+                batch_rot_virt_to_real_inv = batch_inverse_rotation_matrices(batch_rot_virt_to_real)
+                predicted_3d_pos = torch.einsum('bfij,bfjk->bfik', predicted_3d_pos, batch_rot_virt_to_real_inv) # rotate back the predicted 3D poses from canonical to the orginal pelvis position
             if args.rootrel:
                 predicted_3d_pos[:,:,0,:] = 0     # [N,T,17,3]
             if args.gt_2d: # input 2d를 추론값으로 사용함으로써 depth만 추정하도록 함
