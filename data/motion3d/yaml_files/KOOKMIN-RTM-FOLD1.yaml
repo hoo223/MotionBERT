@@ -1,22 +1,16 @@
 adaptive_focal: false
-cam_list:
-- cam0
-- cam1
-- cam2
-- cam4
-- cam5
-- cam6
-- cam7
-- cam8
-canonical_type: same_z
+cam_list: []
+canonical_type: null
 data_type_list:
 - cam_3d
-- cam_3d_from_canonical_3d
-- joint_2d_from_canonical_3d
-dataset_name: 3dhp
-gt_mode: cam_3d
-input_mode: joint_2d_from_canonical_3d
-input_source: GT
+- joint3d_image
+- 2.5d_factor
+- joints_2.5d_image
+- joint_2d
+dataset_name: kookmin
+gt_mode: joint3d_image
+input_mode: joint_2d
+input_source: RTM
 rand_pitch_mag: 0
 rand_pitch_period: 0
 rand_roll_mag: 0
@@ -32,14 +26,16 @@ sinu_yaw_period: 546
 step_rot: 0
 test_cam: []
 test_subject:
-- S1
-- S2
-- S3
-- S4
-- S5
-- S6
-- S7
-- S8
+- S12
+- S15
+- S18
 train_cam: []
-train_subject: []
+train_subject:
+- S13
+- S14
+- S11
+- S16
+- S19
+- S17
+- S20
 univ: false

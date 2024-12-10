@@ -147,5 +147,8 @@ def check_args(args, opts):
     except: args.fix_orientation_pred = False
     try: test = args.fix_orientation_gt
     except: args.fix_orientation_gt = False
+    # default data type list
+    try: test = args.default_data_type_list
+    except: args.default_data_type_list = ['source', 'cam_param', 'camera_name', 'action', 'confidence']
 
     return args, opts

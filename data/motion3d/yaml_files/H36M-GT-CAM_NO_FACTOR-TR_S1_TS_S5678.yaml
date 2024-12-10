@@ -30,3 +30,4 @@ test_subject:
 train_cam: []
 train_subject:
 - S1
+univ: false

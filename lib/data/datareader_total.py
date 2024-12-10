@@ -15,7 +15,7 @@ class DataReaderTotal(object):
                  subset='',
                  step_rot=0,
                  overwrite_list = [],
-                 default_data_type_lsit = ['source', 'cam_param', 'camera_name', 'action', 'confidence'],
+                 default_data_type_list = ['source', 'cam_param', 'camera_name', 'action', 'confidence'],
                  source_tag='',
                  verbose=True):
         # load yaml file
@@ -27,7 +27,7 @@ class DataReaderTotal(object):
         with open(os.path.join(yaml_path), 'r') as file:
             self.yaml_data = yaml.load(file, Loader=yaml.FullLoader)
         self.dataset_name   = self.yaml_data['dataset_name']
-        self.data_type_list = self.yaml_data['data_type_list'] + default_data_type_lsit
+        self.data_type_list = self.yaml_data['data_type_list'] + default_data_type_list
         self.canonical_type = self.yaml_data['canonical_type']
         self.input_source   = self.yaml_data['input_source']
         self.input_mode     = self.yaml_data['input_mode']
@@ -57,7 +57,7 @@ class DataReaderTotal(object):
                          'rand_roll_period': self.yaml_data['rand_roll_period'],
                         }
 
-        self.default_data_type_lsit = default_data_type_lsit
+        self.default_data_type_list = default_data_type_list
         self.overwrite_list = overwrite_list
         self.gt_trainset    = None
         self.gt_testset     = None
@@ -127,8 +127,8 @@ class DataReaderTotal(object):
                 dt_dataset[train_type][data_type] = np.array(dt_dataset[train_type][data_type])
             if len(self.train_subject) == 0:
                 dt_dataset['train'][data_type] = dt_dataset['test'][data_type][:self.data_stride_test].copy()
-            assert len(dt_dataset['train'][data_type]) > 0, f'{data_type} should not be empty'
-            assert len(dt_dataset['test'][data_type]) > 0, f'{data_type} should not be empty'
+            assert len(dt_dataset['train'][data_type]) > 0, f'{data_type} should not be empty (length: {len(dt_dataset["train"][data_type])})'
+            assert len(dt_dataset['test'][data_type]) > 0, f'{data_type} should not be empty (length: {len(dt_dataset["test"][data_type])})'
 
         return dt_dataset
 
@@ -176,12 +176,12 @@ class DataReaderTotal(object):
     def read_3d(self):
         train_labels = self.dt_dataset['train'][self.gt_mode][::self.sample_stride, :, :3].astype(np.float32)  # [N, 17, 3]
         test_labels = self.dt_dataset['test'][self.gt_mode][::self.sample_stride, :, :3].astype(np.float32)    # [N, 17, 3]
+        # normalize to [-1, 1]
         train_cam_param = self.dt_dataset['train']['cam_param'][::self.sample_stride]
         test_cam_param = self.dt_dataset['test']['cam_param'][::self.sample_stride]
         train_W, train_H = np.array([cam_param['W'] for cam_param in train_cam_param]), np.array([cam_param['H'] for cam_param in train_cam_param]) # (N,), (N,)
         test_W, test_H = np.array([cam_param['W'] for cam_param in test_cam_param]), np.array([cam_param['H'] for cam_param in test_cam_param]) # (N,), (N,)
         if self.gt_mode == 'joint3d_image': # normalize to [-1, 1]
-            # map to [-1, 1]
             train_labels = self.normalize(train_labels, train_W, train_H, mode='3d')
             test_labels = self.normalize(test_labels, test_W, test_H, mode='3d')
         elif self.gt_mode == 'world_3d' or self.gt_mode == 'cam_3d' or self.gt_mode == 'cam_3d_from_canonical_3d':
@@ -204,6 +204,11 @@ class DataReaderTotal(object):
             test_hw[idx] = res_w, res_h
         self.test_hw = test_hw
         return test_hw
+    
+    def read_cam_param(self):
+        train_cam_param = self.dt_dataset['train']['cam_param'][::self.sample_stride]
+        test_cam_param = self.dt_dataset['test']['cam_param'][::self.sample_stride]
+        return train_cam_param, test_cam_param
 
     def get_split_id(self):
         if self.split_id_train is not None and self.split_id_test is not None:
@@ -221,13 +226,17 @@ class DataReaderTotal(object):
         test_hw = test_hw[split_id_test][:,0,:]                      # (N, 2)
         return test_hw
 
-    def get_sliced_data(self):
+    def get_sliced_data(self, with_cam_param=False):
         train_data, test_data = self.read_2d()     # train_data (1559752, 17, 3) test_data (566920, 17, 3)
         train_labels, test_labels = self.read_3d() # train_labels (1559752, 17, 3) test_labels (566920, 17, 3)
         print(train_data.shape, test_data.shape, train_labels.shape, test_labels.shape)
         split_id_train, split_id_test = self.get_split_id()
         train_data, test_data = train_data[split_id_train], test_data[split_id_test]                # (N, 27, 17, 3)
         train_labels, test_labels = train_labels[split_id_train], test_labels[split_id_test]        # (N, 27, 17, 3)
+        # if with_cam_param:
+        #     train_cam_param, test_cam_param = self.read_cam_param()
+        #     train_cam_param, test_cam_param = train_cam_param[split_id_train], test_cam_param[split_id_test]
+        #     return train_data, test_data, train_labels, test_labels, train_cam_param, test_cam_param
         return train_data, test_data, train_labels, test_labels
 
     def denormalize(self, test_data):
@@ -283,7 +292,7 @@ class DataReaderTotalGroup(object):
                  yaml_root='data/motion3d/yaml_files',
                  subset_list=[],
                  overwrite_list = [],
-                 default_data_type_lsit = ['source', 'cam_param', 'camera_name', 'action', 'confidence'],
+                 default_data_type_list = ['source', 'cam_param', 'camera_name', 'action', 'confidence'],
                  verbose=True):
         self.channel_pose_2d = 3 if read_confidence else 2
         self.n_frames = n_frames
@@ -299,7 +308,7 @@ class DataReaderTotalGroup(object):
         for i, subset in enumerate(subset_list):
             print(subset)
             self.datareader[subset] = copy.deepcopy(DataReaderTotal(n_frames=n_frames, sample_stride=sample_stride, data_stride_train=data_stride_train, data_stride_test=data_stride_test, read_confidence=read_confidence,
-                                                      yaml_root=yaml_root, subset=subset, overwrite_list=overwrite_list, default_data_type_lsit=default_data_type_lsit, verbose=verbose))
+                                                      yaml_root=yaml_root, subset=subset, overwrite_list=overwrite_list, default_data_type_list=default_data_type_list, verbose=verbose))
 
     def normalize(self, data, W_array, H_array, mode):
         raise NotImplementedError('normalize method should be implemented')
@@ -332,6 +341,20 @@ class DataReaderTotalGroup(object):
         assert total_train_labels.shape[0] == num_train_labels, f'{total_train_labels.shape[0]} {num_train_labels}'
         assert total_test_labels.shape[0] == num_test_labels, f'{total_test_labels.shape[0]} {num_test_labels}'
         return total_train_labels, total_test_labels
+
+    def read_cam_param(self):
+        total_train_cam_param, total_test_cam_param = np.empty([0]), np.empty([0])
+        num_train_cam_param, num_test_cam_param = 0, 0
+        for subset in self.datareader.keys():
+            train_cam_param, test_cam_param = self.datareader[subset].read_cam_param()
+            num_train_cam_param += train_cam_param.shape[0]
+            num_test_cam_param += test_cam_param.shape[0]
+            total_train_cam_param = np.concatenate([total_train_cam_param, train_cam_param], axis=0)
+            total_test_cam_param = np.concatenate([total_test_cam_param, test_cam_param], axis=0)
+        # check number of data
+        assert total_train_cam_param.shape[0] == num_train_cam_param, f'{total_train_cam_param.shape[0]} {num_train_cam_param}'
+        assert total_test_cam_param.shape[0] == num_test_cam_param, f'{total_test_cam_param.shape[0]} {num_test_cam_param}'
+        return total_train_cam_param, total_test_cam_param
 
     def read_hw(self):
         total_test_hw = np.empty([0, 2])
@@ -367,21 +390,26 @@ class DataReaderTotalGroup(object):
         test_hw = test_hw[split_id_test][:,0,:]                      # (N, 2)
         return test_hw
 
-    def get_sliced_data(self):
+    def get_sliced_data(self, with_cam_param=False):
         train_data, test_data = self.read_2d()     # train_data (1559752, 17, 3) test_data (566920, 17, 3)
         train_labels, test_labels = self.read_3d() # train_labels (1559752, 17, 3) test_labels (566920, 17, 3)
         #print(train_data.shape, test_data.shape, train_labels.shape, test_labels.shape)
         split_id_train, split_id_test = self.get_split_id()
         train_data, test_data = train_data[split_id_train], test_data[split_id_test]                # (N, 27, 17, 3)
         train_labels, test_labels = train_labels[split_id_train], test_labels[split_id_test]        # (N, 27, 17, 3)
+        # if with_cam_param:
+        #     train_cam_param, test_cam_param = self.read_cam_param()
+        #     train_cam_param, test_cam_param = train_cam_param[split_id_train], test_cam_param[split_id_test]
+        #     return train_data, test_data, train_labels, test_labels, train_cam_param, test_cam_param
         return train_data, test_data, train_labels, test_labels
 
     def denormalize(self, test_data):
         pre_len = 0
-        denormalized = np.empty([0, 17, 3])
+        denormalized = np.empty([0, self.n_frames, 17, 3])
         for subset in self.datareader.keys():
             test_len = len(self.datareader[subset].dt_dataset['test'][self.datareader[subset].gt_mode][::self.datareader[subset].sample_stride])
-            print(pre_len, pre_len+test_len)
+            #print(pre_len, pre_len+test_len)
+            #print(denormalized.shape, self.datareader[subset].denormalize(test_data[pre_len:pre_len+test_len]).shape)
             denormalized = np.concatenate([denormalized, self.datareader[subset].denormalize(test_data[pre_len:pre_len+test_len])], axis=0)
             pre_len += test_len
         return denormalized

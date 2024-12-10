@@ -135,6 +135,7 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
         # preprocessing
         batch_gt_original = batch_gt.clone().detach().cuda()
         batch_input, batch_gt, batch_gt_torso, batch_gt_limb, conf = preprocess_train(args, batch_input, batch_gt, has_3d, has_gt)
+
         # inferece 3D poses
         if args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total6', 'DHDSTformer_total7', 'DHDSTformer_total8']:
             predicted_3d_pos, pred_angle, gt_angle = inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso)
@@ -176,14 +177,7 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
             predicted_3d_pos, pred_angle, gt_angle = inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso)
 
         # postprocessing
-        # predicted_3d_pos = postprocess_train(args, predicted_3d_pos, )
-        if args.fix_orientation_pred:
-            batch_v_origin_to_pelvis = batch_gt_original[:, :, 0]
-            batch_v_origin_to_principle = torch.tensor([0, 0, 1], device=batch_gt.device).reshape(1, 1, 3).repeat(batch_gt.shape[0], batch_gt.shape[1], 1).float().to(batch_gt_original.device)
-            assert batch_v_origin_to_principle.shape == batch_v_origin_to_pelvis.shape, (batch_v_origin_to_principle.shape, batch_v_origin_to_pelvis.shape)
-            batch_rot_virt_to_real = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_principle, batch_v_origin_to_pelvis)
-            batch_rot_virt_to_real_inv = batch_inverse_rotation_matrices(batch_rot_virt_to_real)
-            predicted_3d_pos = torch.einsum('bfij,bfjk->bfik', predicted_3d_pos, batch_rot_virt_to_real_inv) # rotate back the predicted 3D poses from canonical to the orginal pelvis position
+        predicted_3d_pos = postprocess_train(args, predicted_3d_pos, batch_input, batch_gt_original)
 
         # loss calculation
         optimizer.zero_grad()
@@ -300,6 +294,7 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
             pass
 ##
 def preprocess_train(args, batch_input, batch_gt, has_3d, has_gt):
+    from hpe_library.my_utils.canonical import batch_rotation_matrix_from_vectors_torch, batch_inverse_rotation_matrices
     with torch.no_grad():
         if torch.cuda.is_available():
             batch_input = batch_input.cuda()
@@ -322,13 +317,17 @@ def preprocess_train(args, batch_input, batch_gt, has_3d, has_gt):
             batch_input = batch_input / scale
 
         # Test GT pre-processing
-        if args.fix_orientation_gt:
+        if args.fix_orientation_gt: # real -> virt
             batch_v_origin_to_pelvis = batch_gt[:, :, 0]
+            batch_v_origin_to_pelvis_proj_on_xz = batch_v_origin_to_pelvis.clone()
+            batch_v_origin_to_pelvis_proj_on_xz[:, :, 1] = 0
             batch_v_origin_to_principle = torch.tensor([0, 0, 1], device=batch_gt.device).reshape(1, 1, 3).repeat(batch_gt.shape[0], batch_gt.shape[1], 1).float()
             assert batch_v_origin_to_principle.shape == batch_v_origin_to_pelvis.shape, (batch_v_origin_to_principle.shape, batch_v_origin_to_pelvis.shape)
-            batch_rot_real_to_virt = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_pelvis, batch_v_origin_to_principle)
-            batch_rot_real_to_virt_inv = batch_inverse_rotation_matrices(batch_rot_real_to_virt)
-            batch_gt_virt = torch.einsum('bfij,bfjk->bfik', batch_gt, batch_rot_real_to_virt_inv)
+            batch_R1 = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_pelvis, batch_v_origin_to_pelvis_proj_on_xz)
+            batch_R2 = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_pelvis_proj_on_xz, batch_v_origin_to_principle)
+            batch_R_real2virt_from_3d = torch.einsum('bfij,bfjk->bfik', batch_R2, batch_R1)
+            batch_R_real2virt_from_3d_inv = torch.linalg.inv(batch_R_real2virt_from_3d)
+            batch_gt_virt = torch.einsum('bfij,bfjk->bfik', batch_gt, batch_R_real2virt_from_3d_inv)
             batch_gt = batch_gt_virt
 
         if args.rootrel: # root-relative 3D pose를 추론하도록 훈련
@@ -414,6 +413,23 @@ def inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso):
             pred_angle = None
             gt_angle = None
         return predicted_3d_pos, pred_angle, gt_angle
+##
+def postprocess_train(args, predicted_3d_pos, batch_input, batch_gt):
+    from hpe_library.my_utils.canonical import batch_rotation_matrix_from_vectors_torch
+    if args.fix_orientation_pred: # virt -> real
+        batch_v_origin_to_pelvis = batch_gt[:, :, 0]
+        batch_v_origin_to_pelvis_proj_on_xz = batch_v_origin_to_pelvis.clone()
+        batch_v_origin_to_pelvis_proj_on_xz[:, :, 1] = 0
+        batch_v_origin_to_principle = torch.tensor([0, 0, 1], device=batch_gt.device).reshape(1, 1, 3).repeat(batch_gt.shape[0], batch_gt.shape[1], 1).float()
+        assert batch_v_origin_to_principle.shape == batch_v_origin_to_pelvis.shape, (batch_v_origin_to_principle.shape, batch_v_origin_to_pelvis.shape)
+        batch_R1 = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_pelvis, batch_v_origin_to_pelvis_proj_on_xz)
+        batch_R2 = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_pelvis_proj_on_xz, batch_v_origin_to_principle)
+        batch_R_real2virt_from_3d = torch.einsum('bfij,bfjk->bfik', batch_R2, batch_R1)
+        batch_R_virt2real_from_3d = torch.linalg.inv(batch_R_real2virt_from_3d)
+        batch_R_virt2real_from_3d_inv = batch_R_real2virt_from_3d
+        predicted_3d_pos = torch.einsum('bfij,bfjk->bfik', predicted_3d_pos, batch_R_virt2real_from_3d_inv)
+        return predicted_3d_pos
+
 ##
 def generate_loss_dict(args):
     losses = {}

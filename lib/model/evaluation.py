@@ -48,13 +48,17 @@ def preprocess_eval(args, batch_input, batch_gt):
         batch_input = batch_input / scale
 
     # Test GT pre-processing
-    if args.fix_orientation_gt:
+    if args.fix_orientation_gt: # real -> virt
         batch_v_origin_to_pelvis = batch_gt[:, :, 0]
+        batch_v_origin_to_pelvis_proj_on_xz = batch_v_origin_to_pelvis.clone()
+        batch_v_origin_to_pelvis_proj_on_xz[:, :, 1] = 0
         batch_v_origin_to_principle = torch.tensor([0, 0, 1], device=batch_gt.device).reshape(1, 1, 3).repeat(batch_gt.shape[0], batch_gt.shape[1], 1).float()
         assert batch_v_origin_to_principle.shape == batch_v_origin_to_pelvis.shape, (batch_v_origin_to_principle.shape, batch_v_origin_to_pelvis.shape)
-        batch_rot_real_to_virt = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_pelvis, batch_v_origin_to_principle)
-        batch_rot_real_to_virt_inv = batch_inverse_rotation_matrices(batch_rot_real_to_virt)
-        batch_gt_virt = torch.einsum('bfij,bfjk->bfik', batch_gt, batch_rot_real_to_virt_inv)
+        batch_R1 = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_pelvis, batch_v_origin_to_pelvis_proj_on_xz)
+        batch_R2 = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_pelvis_proj_on_xz, batch_v_origin_to_principle)
+        batch_R_real2virt_from_3d = torch.einsum('bfij,bfjk->bfik', batch_R2, batch_R1)
+        batch_R_real2virt_from_3d_inv = torch.linalg.inv(batch_R_real2virt_from_3d)
+        batch_gt_virt = torch.einsum('bfij,bfjk->bfik', batch_gt, batch_R_real2virt_from_3d_inv)
         batch_gt = batch_gt_virt
 
     if args.rootrel:
@@ -118,8 +122,23 @@ def batch_inference_eval(args, model_pos, batch_input, batch_gt, batch_gt_torso,
 
     return predicted_3d_pos
 
+def postprocess_eval(args, predicted_3d_pos, batch_gt, batch_input):
+    from hpe_library.my_utils.canonical import batch_rotation_matrix_from_vectors_torch
+    if args.fix_orientation_pred: # virt -> real
+        batch_v_origin_to_pelvis = batch_gt[:, :, 0]
+        batch_v_origin_to_pelvis_proj_on_xz = batch_v_origin_to_pelvis.clone()
+        batch_v_origin_to_pelvis_proj_on_xz[:, :, 1] = 0
+        batch_v_origin_to_principle = torch.tensor([0, 0, 1], device=batch_gt.device).reshape(1, 1, 3).repeat(batch_gt.shape[0], batch_gt.shape[1], 1).float()
+        assert batch_v_origin_to_principle.shape == batch_v_origin_to_pelvis.shape, (batch_v_origin_to_principle.shape, batch_v_origin_to_pelvis.shape)
+        batch_R1 = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_pelvis, batch_v_origin_to_pelvis_proj_on_xz)
+        batch_R2 = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_pelvis_proj_on_xz, batch_v_origin_to_principle)
+        batch_R_real2virt_from_3d = torch.einsum('bfij,bfjk->bfik', batch_R2, batch_R1)
+        batch_R_virt2real_from_3d = torch.linalg.inv(batch_R_real2virt_from_3d)
+        batch_R_virt2real_from_3d_inv = batch_R_real2virt_from_3d
+        predicted_3d_pos = torch.einsum('bfij,bfjk->bfik', predicted_3d_pos, batch_R_virt2real_from_3d_inv)
+    return predicted_3d_pos
+
 def inference_eval(args, model_pos, test_loader, datareader, only_one_batch=False):
-    from hpe_library.my_utils.canonical import batch_rotation_matrix_from_vectors_torch, batch_inverse_rotation_matrices
     results_all = []
     gts_all = []
     inputs_all = []
@@ -132,13 +151,7 @@ def inference_eval(args, model_pos, test_loader, datareader, only_one_batch=Fals
             # inference
             predicted_3d_pos = batch_inference_eval(args, model_pos, batch_input, batch_gt, batch_gt_torso, batch_gt_limb_pos)
             # postprocessing
-            if args.fix_orientation_pred:
-                batch_v_origin_to_pelvis = batch_gt_original[:, :, 0]
-                batch_v_origin_to_principle = torch.tensor([0, 0, 1], device=batch_gt.device).reshape(1, 1, 3).repeat(batch_gt.shape[0], batch_gt.shape[1], 1).float().to(batch_gt.device)
-                assert batch_v_origin_to_principle.shape == batch_v_origin_to_pelvis.shape, (batch_v_origin_to_principle.shape, batch_v_origin_to_pelvis.shape)
-                batch_rot_virt_to_real = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_principle, batch_v_origin_to_pelvis)
-                batch_rot_virt_to_real_inv = batch_inverse_rotation_matrices(batch_rot_virt_to_real)
-                predicted_3d_pos = torch.einsum('bfij,bfjk->bfik', predicted_3d_pos, batch_rot_virt_to_real_inv) # rotate back the predicted 3D poses from canonical to the orginal pelvis position
+            predicted_3d_pos = postprocess_eval(args, predicted_3d_pos, batch_gt_original, batch_input)
             if args.rootrel:
                 predicted_3d_pos[:,:,0,:] = 0     # [N,T,17,3]
             if args.gt_2d: # input 2d를 추론값으로 사용함으로써 depth만 추정하도록 함
@@ -153,6 +166,7 @@ def inference_eval(args, model_pos, test_loader, datareader, only_one_batch=Fals
     inputs_all = np.concatenate(inputs_all)
     if args.denormalize_output:
         results_all = datareader.denormalize(results_all) # denormalize the predicted 3D poses
+        #gts_all = datareader.denormalize(gts_all) # denormalize the ground truth 3D poses
 
     return results_all, inputs_all, gts_all
 
@@ -245,8 +259,10 @@ def calculate_eval_metric(args, results_all, datareader, verbose=True):
         factor = factor_clips[idx][:,None,None]
         gt = gt_clips[idx]
         pred = results_all[idx]
-        if 'NO_FACTOR' not in args.subset_list[0]:
-            pred *= factor # scaling image to world scale
+        if args.mpjpe_mode == 'joints_2.5d_image':
+            pred *= factor # scaling image to world (mm) scale
+            if args.gt_mode == 'joint3d_image':
+                gt *= factor
 
         # Root-relative Errors
         if (args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total4', 'DHDSTformer_total5', 'DHDSTformer_total6', 'DHDSTformer_total7', 'DHDSTformer_total8', 'DHDSTformer_torso', 'DHDSTformer_torso_limb', 'DHDSTformer_right_upper_arm2']) or ('MB' in args.model): # only model that predict pelvis point

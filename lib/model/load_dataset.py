@@ -11,7 +11,7 @@ from lib.data.datareader_3dhp import DataReader3DHP
 from lib.data.datareader_poseaug_3dhp import DataReaderPOSEAUG3DHP
 from lib.data.datareader_total import DataReaderTotal, DataReaderTotalGroup
 
-def load_dataset(args, use_new_datareader=False):
+def load_dataset(args, use_new_datareader=False, with_cam_param=False):
     print('Loading dataset...')
     trainloader_params = {
           'batch_size': args.batch_size,
@@ -42,12 +42,18 @@ def load_dataset(args, use_new_datareader=False):
 
     if use_new_datareader:
         if len(args.subset_list) >= 1:
-            datareader = DataReaderTotalGroup(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, subset_list=args.subset_list)
+            datareader = DataReaderTotalGroup(n_frames=args.clip_len,
+                                              sample_stride=args.sample_stride,
+                                              data_stride_train=args.data_stride,
+                                              data_stride_test=args.clip_len,
+                                              subset_list=args.subset_list,
+                                              default_data_type_list=args.default_data_type_list)
         # elif len(args.subset_list) == 1:
         #     subset = args.subset_list[0]
         #     datareader = DataReaderTotal(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, subset=subset, step_rot=args.step_rot)
         else:
             raise ValueError('Subset list is empty')
+
         train_data, test_data, train_labels, test_labels = datareader.get_sliced_data()
         train_dataset = MotionDataset3DTotal(args, train_data.copy(), train_labels.copy(), 'train')
         test_dataset = MotionDataset3DTotal(args, test_data.copy(), test_labels.copy(), 'test')
