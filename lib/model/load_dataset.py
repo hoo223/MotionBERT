@@ -47,10 +47,8 @@ def load_dataset(args, use_new_datareader=False, with_cam_param=False):
                                               data_stride_train=args.data_stride,
                                               data_stride_test=args.clip_len,
                                               subset_list=args.subset_list,
-                                              default_data_type_list=args.default_data_type_list)
-        # elif len(args.subset_list) == 1:
-        #     subset = args.subset_list[0]
-        #     datareader = DataReaderTotal(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, subset=subset, step_rot=args.step_rot)
+                                              default_data_type_list=args.default_data_type_list,
+                                              normalize_2d=args.normalize_2d)
         else:
             raise ValueError('Subset list is empty')
 

@@ -150,5 +150,8 @@ def check_args(args, opts):
     # default data type list
     try: test = args.default_data_type_list
     except: args.default_data_type_list = ['source', 'cam_param', 'camera_name', 'action', 'confidence']
+    # normalize 2d
+    try: test = args.normalize_2d
+    except: args.normalize_2d = True
 
     return args, opts

@@ -31,3 +31,4 @@ test_subject:
 - TS6
 train_cam: []
 train_subject: []
+univ: false

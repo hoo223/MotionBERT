@@ -10,7 +10,7 @@ from lib.utils.utils_data import split_clips
 random.seed(0)
 
 class DataReaderTotal(object):
-    def __init__(self, n_frames=243, sample_stride=1, data_stride_train=81, data_stride_test=243, read_confidence=True,
+    def __init__(self, n_frames=243, sample_stride=1, data_stride_train=81, data_stride_test=243, read_confidence=True, normalize_2d=True,
                  yaml_root='data/motion3d/yaml_files',
                  subset='',
                  step_rot=0,
@@ -70,6 +70,7 @@ class DataReaderTotal(object):
         self.data_stride_test = data_stride_test
         self.read_confidence = read_confidence
         self.source_tag = source_tag
+        self.normalize_2d = normalize_2d
 
         assert self.input_mode in self.data_type_list, f'{self.input_mode} should be in data_type_list {self.data_type_list}'
         assert self.gt_mode in self.data_type_list, f'{self.gt_mode} should be in data_type_list {self.data_type_list}'
@@ -155,8 +156,9 @@ class DataReaderTotal(object):
         train_W, train_H = np.array([cam_param['W'] for cam_param in train_cam_param]), np.array([cam_param['H'] for cam_param in train_cam_param])
         test_W, test_H = np.array([cam_param['W'] for cam_param in test_cam_param]), np.array([cam_param['H'] for cam_param in test_cam_param])
         # normalize to [-1, 1]
-        trainset = self.normalize(trainset, train_W, train_H, mode='2d')
-        testset = self.normalize(testset, test_W, test_H, mode='2d')
+        if self.normalize_2d:
+            trainset = self.normalize(trainset, train_W, train_H, mode='2d')
+            testset = self.normalize(testset, test_W, test_H, mode='2d')
         # add confidence
         if self.read_confidence:
             if 'confidence' in self.dt_dataset['train'].keys():
@@ -288,7 +290,7 @@ class DataReaderTotal(object):
         return sorted(set(self.dt_dataset['test']['action']))
 
 class DataReaderTotalGroup(object):
-    def __init__(self, n_frames=243, sample_stride=1, data_stride_train=81, data_stride_test=243, read_confidence=True,
+    def __init__(self, n_frames=243, sample_stride=1, data_stride_train=81, data_stride_test=243, read_confidence=True, normalize_2d=True,
                  yaml_root='data/motion3d/yaml_files',
                  subset_list=[],
                  overwrite_list = [],
@@ -300,6 +302,7 @@ class DataReaderTotalGroup(object):
         self.data_stride_train = data_stride_train
         self.data_stride_test = data_stride_test
         self.read_confidence = read_confidence
+        self.normalize_2d = normalize_2d
         self.split_id_train = None
         self.split_id_test  = None
         self.test_hw        = None
@@ -307,7 +310,7 @@ class DataReaderTotalGroup(object):
         assert len(subset_list) > 0, 'subset_list should be provided'
         for i, subset in enumerate(subset_list):
             print(subset)
-            self.datareader[subset] = copy.deepcopy(DataReaderTotal(n_frames=n_frames, sample_stride=sample_stride, data_stride_train=data_stride_train, data_stride_test=data_stride_test, read_confidence=read_confidence,
+            self.datareader[subset] = copy.deepcopy(DataReaderTotal(n_frames=n_frames, sample_stride=sample_stride, data_stride_train=data_stride_train, data_stride_test=data_stride_test, read_confidence=read_confidence, normalize_2d=normalize_2d,
                                                       yaml_root=yaml_root, subset=subset, overwrite_list=overwrite_list, default_data_type_list=default_data_type_list, verbose=verbose))
 
     def normalize(self, data, W_array, H_array, mode):

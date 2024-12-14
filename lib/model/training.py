@@ -428,7 +428,7 @@ def postprocess_train(args, predicted_3d_pos, batch_input, batch_gt):
         batch_R_virt2real_from_3d = torch.linalg.inv(batch_R_real2virt_from_3d)
         batch_R_virt2real_from_3d_inv = batch_R_real2virt_from_3d
         predicted_3d_pos = torch.einsum('bfij,bfjk->bfik', predicted_3d_pos, batch_R_virt2real_from_3d_inv)
-        return predicted_3d_pos
+    return predicted_3d_pos
 
 ##
 def generate_loss_dict(args):
