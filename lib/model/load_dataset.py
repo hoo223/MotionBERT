@@ -10,6 +10,7 @@ from lib.data.datareader_kookmin import DataReaderKOOKMIN
 from lib.data.datareader_3dhp import DataReader3DHP
 from lib.data.datareader_poseaug_3dhp import DataReaderPOSEAUG3DHP
 from lib.data.datareader_total import DataReaderTotal, DataReaderTotalGroup
+import os
 
 def load_dataset(args, use_new_datareader=False, with_cam_param=False):
     print('Loading dataset...')
