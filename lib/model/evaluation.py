@@ -21,7 +21,7 @@ def evaluate(args, model_pos, test_loader, datareader, checkpoint, only_one_batc
             except:
                 print('No epoch information in the checkpoint')
         # get inference results
-        results_all, inputs_all, gts_all = inference_eval(args, model_pos, test_loader, datareader, only_one_batch)
+        results_all, inputs_all, gts_all, pred_orig_all, gts_orig_all = inference_eval(args, model_pos, test_loader, datareader, only_one_batch)
         # calculate evaluation metric
         if 'CANONICALIZATION' in args.subset_list[0]: # for 2D canonicalization network
             e1, total_result_dict = calculate_eval_metric_canonicalization(args, inputs_all, results_all, gts_all, datareader)
@@ -64,7 +64,8 @@ def preprocess_eval(args, batch_input, batch_gt):
     if args.rootrel:
         batch_gt = batch_gt - batch_gt[:,:,0:1,:]
     else:
-        batch_gt[:,0,0,2] = 0
+        #batch_gt[:,0,0,2] = 0
+        pass
     if batch_gt.shape[2] == 17:
         batch_gt_torso = batch_gt[:, :, [0, 1, 4, 7, 8, 9, 10, 11, 14], :]
         batch_gt_limb_pos = batch_gt[:, :, [2, 3, 5, 6, 12, 13, 15, 16], :]
@@ -125,10 +126,10 @@ def batch_inference_eval(args, model_pos, batch_input, batch_gt, batch_gt_torso,
 def postprocess_eval(args, predicted_3d_pos, batch_gt, batch_input):
     from hpe_library.my_utils.canonical import batch_rotation_matrix_from_vectors_torch
     if args.fix_orientation_pred: # virt -> real
-        subset = args.subset_list[0]
         batch_v_origin_to_pelvis = batch_gt[:, :, 0]
         batch_v_origin_to_principle = torch.tensor([0, 0, 1], device=batch_gt.device).reshape(1, 1, 3).repeat(batch_gt.shape[0], batch_gt.shape[1], 1).float()
         assert batch_v_origin_to_principle.shape == batch_v_origin_to_pelvis.shape, (batch_v_origin_to_principle.shape, batch_v_origin_to_pelvis.shape)
+        subset = args.subset_list[0]
         if 'WHIT_RZ' in subset:
             batch_R_virt2real_from_3d = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_principle, batch_v_origin_to_pelvis)
             batch_R_virt2real_from_3d_inv = torch.linalg.inv(batch_R_virt2real_from_3d)
@@ -146,15 +147,18 @@ def postprocess_eval(args, predicted_3d_pos, batch_gt, batch_input):
 def inference_eval(args, model_pos, test_loader, datareader, only_one_batch=False):
     results_all = []
     gts_all = []
+    gts_orig_all = []
     inputs_all = []
+    pred_orig_all = []
     with torch.no_grad():
-        for batch_input, batch_gt in tqdm(test_loader): # batch_input: normalized joint_2d, batch_gt: normalized joint3d_image
+        for batch_input, batch_gt, intrinsic in tqdm(test_loader): # batch_input: normalized joint_2d, batch_gt: normalized joint3d_image
             batch_size = len(batch_input)
             # preprocessing
             batch_gt_original = batch_gt.clone().detach().cuda()
             batch_input, batch_gt, batch_gt_torso, batch_gt_limb_pos = preprocess_eval(args, batch_input, batch_gt)
             # inference
             predicted_3d_pos = batch_inference_eval(args, model_pos, batch_input, batch_gt, batch_gt_torso, batch_gt_limb_pos)
+            predicted_3d_pos_orig = predicted_3d_pos.clone().detach()
             # postprocessing
             predicted_3d_pos = postprocess_eval(args, predicted_3d_pos, batch_gt_original, batch_input)
             if args.rootrel:
@@ -164,16 +168,21 @@ def inference_eval(args, model_pos, test_loader, datareader, only_one_batch=Fals
             # store the results
             results_all.append(predicted_3d_pos.cpu().numpy())
             gts_all.append(batch_gt.cpu().numpy())
+            gts_orig_all.append(batch_gt_original.cpu().numpy())
             inputs_all.append(batch_input.cpu().numpy())
+            pred_orig_all.append(predicted_3d_pos_orig.cpu().numpy())
             if only_one_batch: break
     results_all = np.concatenate(results_all)
     gts_all = np.concatenate(gts_all)
+    gts_orig_all = np.concatenate(gts_orig_all)
     inputs_all = np.concatenate(inputs_all)
+    pred_orig_all = np.concatenate(pred_orig_all)
     if args.denormalize_output:
         results_all = datareader.denormalize(results_all) # denormalize the predicted 3D poses
+        pred_orig_all = datareader.denormalize(pred_orig_all) # denormalize the predicted 3D poses
         #gts_all = datareader.denormalize(gts_all) # denormalize the ground truth 3D poses
 
-    return results_all, inputs_all, gts_all
+    return results_all, inputs_all, gts_all, pred_orig_all, gts_orig_all
 
 # def get_clip_info(args, datareader, results_all):
 #     _, split_id_test = datareader.get_split_id() # [range(0, 243) ... range(102759, 103002)]

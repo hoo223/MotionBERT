@@ -130,7 +130,7 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
     from hpe_library.my_utils.canonical import batch_rotation_matrix_from_vectors_torch, batch_inverse_rotation_matrices
     model_pos.train()
     pbar = tqdm(train_loader)
-    for (batch_input, batch_gt) in pbar:
+    for (batch_input, batch_gt, batch_cam_param) in pbar:
         batch_size = len(batch_input)
         # preprocessing
         batch_gt_original = batch_gt.clone().detach().cuda()

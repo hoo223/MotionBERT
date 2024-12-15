@@ -206,7 +206,7 @@ class DataReaderTotal(object):
             test_hw[idx] = res_w, res_h
         self.test_hw = test_hw
         return test_hw
-    
+
     def read_cam_param(self):
         train_cam_param = self.dt_dataset['train']['cam_param'][::self.sample_stride]
         test_cam_param = self.dt_dataset['test']['cam_param'][::self.sample_stride]
@@ -227,6 +227,12 @@ class DataReaderTotal(object):
         split_id_train, split_id_test = self.get_split_id()
         test_hw = test_hw[split_id_test][:,0,:]                      # (N, 2)
         return test_hw
+
+    def get_sliced_cam_param(self):
+        train_cam_param, test_cam_param = self.read_cam_param()
+        split_id_train, split_id_test = self.get_split_id()
+        train_cam_param, test_cam_param = train_cam_param[split_id_train], test_cam_param[split_id_test]
+        return train_cam_param, test_cam_param
 
     def get_sliced_data(self, with_cam_param=False):
         train_data, test_data = self.read_2d()     # train_data (1559752, 17, 3) test_data (566920, 17, 3)
@@ -405,6 +411,12 @@ class DataReaderTotalGroup(object):
         #     train_cam_param, test_cam_param = train_cam_param[split_id_train], test_cam_param[split_id_test]
         #     return train_data, test_data, train_labels, test_labels, train_cam_param, test_cam_param
         return train_data, test_data, train_labels, test_labels
+
+    def get_sliced_cam_param(self):
+        train_cam_param, test_cam_param = self.read_cam_param()
+        split_id_train, split_id_test = self.get_split_id()
+        train_cam_param, test_cam_param = train_cam_param[split_id_train], test_cam_param[split_id_test]
+        return train_cam_param, test_cam_param
 
     def denormalize(self, test_data):
         pre_len = 0

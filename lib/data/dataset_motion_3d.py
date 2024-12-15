@@ -68,13 +68,14 @@ class MotionDataset3D(MotionDataset):
         return torch.FloatTensor(motion_2d), torch.FloatTensor(motion_3d)
 
 class MotionDataset3DTotal():
-    def __init__(self, args, inputs, labels, data_split):
+    def __init__(self, args, inputs, labels, cam_params, data_split):
         self.flip = args.flip
         self.synthetic = args.synthetic
         self.aug = Augmenter3D(args)
         self.gt_2d = args.gt_2d
         self.inputs = inputs
         self.labels = labels
+        self.cam_params = cam_params
         self.data_split = data_split
 
     def __getitem__(self, index):
@@ -101,7 +102,9 @@ class MotionDataset3DTotal():
                 motion_2d[:,:,2] = 1
         else:
             raise ValueError('Data split unknown.')
-        return torch.FloatTensor(motion_2d), torch.FloatTensor(motion_3d)
+        cam_param = self.cam_params[index]
+        intrinsic = cam_param[0]["intrinsic"]
+        return torch.FloatTensor(motion_2d), torch.FloatTensor(motion_3d), intrinsic
 
     def __len__(self):
         'Denotes the total number of samples'
