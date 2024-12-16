@@ -21,7 +21,7 @@ def evaluate(args, model_pos, test_loader, datareader, checkpoint, only_one_batc
             except:
                 print('No epoch information in the checkpoint')
         # get inference results
-        results_all, inputs_all, gts_all, pred_orig_all, gts_orig_all = inference_eval(args, model_pos, test_loader, datareader, only_one_batch)
+        results_all, inputs_all, gts_all = inference_eval(args, model_pos, test_loader, datareader, only_one_batch)
         # calculate evaluation metric
         if 'CANONICALIZATION' in args.subset_list[0]: # for 2D canonicalization network
             e1, total_result_dict = calculate_eval_metric_canonicalization(args, inputs_all, results_all, gts_all, datareader)
@@ -147,11 +147,11 @@ def postprocess_eval(args, predicted_3d_pos, batch_gt, batch_input):
 def inference_eval(args, model_pos, test_loader, datareader, only_one_batch=False):
     results_all = []
     gts_all = []
-    gts_orig_all = []
     inputs_all = []
-    pred_orig_all = []
+    # gts_orig_all = []
+    # pred_orig_all = []
     with torch.no_grad():
-        for batch_input, batch_gt, intrinsic in tqdm(test_loader): # batch_input: normalized joint_2d, batch_gt: normalized joint3d_image
+        for batch_input, batch_gt in tqdm(test_loader): # batch_input: normalized joint_2d, batch_gt: normalized joint3d_image
             batch_size = len(batch_input)
             # preprocessing
             batch_gt_original = batch_gt.clone().detach().cuda()
@@ -168,58 +168,64 @@ def inference_eval(args, model_pos, test_loader, datareader, only_one_batch=Fals
             # store the results
             results_all.append(predicted_3d_pos.cpu().numpy())
             gts_all.append(batch_gt.cpu().numpy())
-            gts_orig_all.append(batch_gt_original.cpu().numpy())
             inputs_all.append(batch_input.cpu().numpy())
-            pred_orig_all.append(predicted_3d_pos_orig.cpu().numpy())
+            #gts_orig_all.append(batch_gt_original.cpu().numpy())
+            #pred_orig_all.append(predicted_3d_pos_orig.cpu().numpy())
             if only_one_batch: break
     results_all = np.concatenate(results_all)
     gts_all = np.concatenate(gts_all)
-    gts_orig_all = np.concatenate(gts_orig_all)
     inputs_all = np.concatenate(inputs_all)
-    pred_orig_all = np.concatenate(pred_orig_all)
+    # gts_orig_all = np.concatenate(gts_orig_all)
+    # pred_orig_all = np.concatenate(pred_orig_all)
     if args.denormalize_output:
         results_all = datareader.denormalize(results_all) # denormalize the predicted 3D poses
-        pred_orig_all = datareader.denormalize(pred_orig_all) # denormalize the predicted 3D poses
-        #gts_all = datareader.denormalize(gts_all) # denormalize the ground truth 3D poses
+        # pred_orig_all = datareader.denormalize(pred_orig_all) # denormalize the predicted 3D poses
+        # gts_all = datareader.denormalize(gts_all) # denormalize the ground truth 3D poses
 
-    return results_all, inputs_all, gts_all, pred_orig_all, gts_orig_all
+    return results_all, inputs_all, gts_all
 
-# def get_clip_info(args, datareader, results_all):
-#     _, split_id_test = datareader.get_split_id() # [range(0, 243) ... range(102759, 103002)]
-#     actions = np.array(datareader.dt_dataset['test']['action']) # 103130 ['squat' ...  'kneeup']
-#     try:
-#         factors = np.array(datareader.dt_dataset['test']['2.5d_factor']) # 103130 [3.49990559 ... 2.09230852]
-#     except: # if no factor
-#         factors = np.ones_like(actions)
-#     gts = np.array(datareader.dt_dataset['test'][args.mpjpe_mode])
-#     sources = np.array(datareader.dt_dataset['test']['source']) # 103130 ['S02_6_squat_001' ... 'S08_4_kneeup_001']
+def get_clip_info(args, datareader, results_all):
+    _, split_id_test = datareader.get_split_id() # [range(0, 243) ... range(102759, 103002)]
+    actions = np.array(datareader.dt_dataset['test']['action']) # 103130 ['squat' ...  'kneeup']
+    try:
+        factors = np.array(datareader.dt_dataset['test']['2.5d_factor']) # 103130 [3.49990559 ... 2.09230852]
+    except: # if no factor
+        factors = np.ones_like(actions)
+    gts = np.array(datareader.dt_dataset['test'][args.mpjpe_mode])
+    sources = np.array(datareader.dt_dataset['test']['source']) # 103130 ['S02_6_squat_001' ... 'S08_4_kneeup_001']
 
-#     num_test_frames = len(actions)
-#     frames = np.array(range(num_test_frames))
-#     action_clips = np.array([actions[split_id_test[i]] for i in range(len(split_id_test))]) # actions[split_id_test]
-#     factor_clips = np.array([factors[split_id_test[i]] for i in range(len(split_id_test))]) # factors[split_id_test]
-#     source_clips = np.array([sources[split_id_test[i]] for i in range(len(split_id_test))]) # sources[split_id_test]
-#     frame_clips  = np.array([frames[split_id_test[i]] for i in range(len(split_id_test))]) # frames[split_id_test]
-#     gt_clips     = np.array([gts[split_id_test[i]] for i in range(len(split_id_test))]) # gts[split_id_test]
+    num_test_frames = len(actions)
+    frames = np.array(range(num_test_frames))
+    action_clips = np.array([actions[split_id_test[i]] for i in range(len(split_id_test))]) # actions[split_id_test]
+    factor_clips = np.array([factors[split_id_test[i]] for i in range(len(split_id_test))]) # factors[split_id_test]
+    source_clips = np.array([sources[split_id_test[i]] for i in range(len(split_id_test))]) # sources[split_id_test]
+    frame_clips  = np.array([frames[split_id_test[i]] for i in range(len(split_id_test))]) # frames[split_id_test]
+    gt_clips     = np.array([gts[split_id_test[i]] for i in range(len(split_id_test))]) # gts[split_id_test]
 
-#     action_clips = action_clips[:len(results_all)]
-#     factor_clips = factor_clips[:len(results_all)]
-#     source_clips = source_clips[:len(results_all)]
-#     frame_clips = frame_clips[:len(results_all)]
-#     gt_clips = gt_clips[:len(results_all)]
-#     assert len(results_all)==len(action_clips), f'The number of results and action_clips are different: {len(results_all)} vs {len(action_clips)}'
+    action_clips = action_clips[:len(results_all)]
+    factor_clips = factor_clips[:len(results_all)]
+    source_clips = source_clips[:len(results_all)]
+    frame_clips = frame_clips[:len(results_all)]
+    gt_clips = gt_clips[:len(results_all)]
+    assert len(results_all)==len(action_clips), f'The number of results and action_clips are different: {len(results_all)} vs {len(action_clips)}'
 
-#     return num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions
+    return num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions
 
 def calculate_eval_metric(args, results_all, datareader, verbose=True):
-    num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions = datareader.get_clip_info(args, len(results_all))
+    try:
+        num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions = datareader.get_clip_info(args, len(results_all))
+    except:
+        num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions = get_clip_info(args, datareader, results_all)
 
     total_result_dict = {}
     pelvis, r_hip, l_hip, torso, neck, l_shoulder, r_shoulder = 0, 1, 4, 7, 8, 11, 14
     r_knee, r_ankle, l_knee, l_ankle = 2, 3, 5, 6
     l_elbow, l_wrist, r_elbow, r_wrist = 12, 13, 15, 16
     nose, head = 9, 10
-    action_names = datareader.get_action_list() # sorted(set(datareader.dt_dataset['test']['action']))
+    try:
+        action_names = datareader.get_action_list() # sorted(set(datareader.dt_dataset['test']['action']))
+    except:
+        action_names = sorted(set(datareader.dt_dataset['test']['action']))
     if 'H36M-SH' in args.subset_list:
         block_list = ['s_09_act_05_subact_02',
                     's_09_act_10_subact_02',

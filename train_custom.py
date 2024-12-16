@@ -56,7 +56,7 @@ def get_project_name(args):
 
 def main(args, opts, run=None):
     # Load dataset
-    train_loader_3d, test_loader, posetrack_loader_2d, instav_loader_2d, datareader = load_dataset(args, use_new_datareader=True)
+    train_loader_3d, test_loader, posetrack_loader_2d, instav_loader_2d, datareader = load_dataset(args, use_new_datareader=args.use_new_datareader)
     # Load model and checkpoint
     model_pos, chk_filename, checkpoint = load_model(opts, args)
     # main process

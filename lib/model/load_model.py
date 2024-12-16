@@ -38,13 +38,13 @@ def load_model(opts, args, verbose=True):
     elif args.model == 'DHDSTformer_right_arm': model_pos = DHDSTformer_right_arm(chk_filename=chk_backbone_filename, args=args)
     elif args.model == 'DHDSTformer_right_arm2': model_pos = DHDSTformer_right_arm2(chk_filename=chk_backbone_filename, args=args)
     elif args.model == 'DHDSTformer_right_arm3': model_pos = DHDSTformer_right_arm3(chk_filename=chk_backbone_filename, args=args)
-    else: 
+    else:
         model_pos = load_backbone(args)
-        
+
     if torch.cuda.is_available():
         model_pos = nn.DataParallel(model_pos)
         model_pos = model_pos.cuda()
-    
+
     checkpoint = None
     if args.finetune:
         if opts.resume:
@@ -56,7 +56,7 @@ def load_model(opts, args, verbose=True):
             chk_filename = os.path.join(opts.pretrained, opts.selection)
             if verbose:print('Loading checkpoint from pretrained', chk_filename)
             checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
-            model_pos.load_state_dict(checkpoint['model_pos'], strict=True)    
+            model_pos.load_state_dict(checkpoint['model_pos'], strict=True)
     else:
         chk_filename = os.path.join(opts.checkpoint, "latest_epoch.bin")
         if os.path.exists(chk_filename):
@@ -71,5 +71,5 @@ def load_model(opts, args, verbose=True):
         if verbose:print('Loading checkpoint', chk_filename)
         checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
         model_pos.load_state_dict(checkpoint['model_pos'], strict=True)
-    
+
     return model_pos, chk_filename, checkpoint

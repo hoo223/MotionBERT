@@ -4,6 +4,7 @@ no_eval: False
 finetune: False
 partial_train: null
 input_centering: True
+fix_orientation_pred: False
 test_run: False
 
 # Traning

@@ -153,5 +153,8 @@ def check_args(args, opts):
     # normalize 2d
     try: test = args.normalize_2d
     except: args.normalize_2d = True
+    # use_new_datareader
+    try: test = args.use_new_datareader
+    except: args.use_new_datareader = True
 
     return args, opts

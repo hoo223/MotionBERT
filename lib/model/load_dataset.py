@@ -54,10 +54,10 @@ def load_dataset(args, use_new_datareader=False, with_cam_param=False):
             raise ValueError('Subset list is empty')
 
         train_data, test_data, train_labels, test_labels = datareader.get_sliced_data()
-        train_cam_param, test_cam_param = datareader.get_sliced_cam_param()
-        print(type(train_cam_param), type(test_cam_param))
-        train_dataset = MotionDataset3DTotal(args, train_data.copy(), train_labels.copy(), train_cam_param.copy(), 'train')
-        test_dataset = MotionDataset3DTotal(args, test_data.copy(), test_labels.copy(), test_cam_param.copy(), 'test')
+        # train_cam_param, test_cam_param = datareader.get_sliced_cam_param()
+        # print(type(train_cam_param), type(test_cam_param))
+        train_dataset = MotionDataset3DTotal(args, train_data.copy(), train_labels.copy(), 'train')
+        test_dataset = MotionDataset3DTotal(args, test_data.copy(), test_labels.copy(), 'test')
     else:
         for subset in args.subset_list:
             print(subset)
