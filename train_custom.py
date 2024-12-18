@@ -25,10 +25,15 @@ from lib.model.evaluation import *
 os.environ["NCCL_P2P_DISABLE"]= '1'
 os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1'
 
+torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = True
+
 def set_random_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
 def get_project_name(args):
     item = args.model

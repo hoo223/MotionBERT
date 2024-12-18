@@ -12,7 +12,9 @@ from lib.data.datareader_poseaug_3dhp import DataReaderPOSEAUG3DHP
 from lib.data.datareader_total import DataReaderTotal, DataReaderTotalGroup
 import os
 
-def load_dataset(args, use_new_datareader=False, with_cam_param=False):
+import numpy as np
+
+def load_dataset(args, use_new_datareader=False):
     print('Loading dataset...')
     trainloader_params = {
           'batch_size': args.batch_size,
@@ -20,7 +22,8 @@ def load_dataset(args, use_new_datareader=False, with_cam_param=False):
           'num_workers': 12,
           'pin_memory': True,
           'prefetch_factor': 4,
-          'persistent_workers': True
+          'persistent_workers': True,
+          'worker_init_fn': lambda _: np.random.seed(0)
     }
 
     testloader_params = {
