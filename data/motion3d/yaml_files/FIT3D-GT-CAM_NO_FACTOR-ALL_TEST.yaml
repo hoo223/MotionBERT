@@ -33,3 +33,4 @@ test_subject:
 - s11
 train_cam: []
 train_subject: []
+univ: false
