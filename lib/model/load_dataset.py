@@ -23,7 +23,7 @@ def load_dataset(args, use_new_datareader=False):
           'pin_memory': True,
           'prefetch_factor': 4,
           'persistent_workers': True,
-          'worker_init_fn': lambda _: np.random.seed(0)
+          'worker_init_fn': lambda _: np.random.seed(args.seed)
     }
 
     testloader_params = {

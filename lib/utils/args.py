@@ -7,6 +7,7 @@ def list_of_strings(arg):
 def get_opts_args(input_args=None, verbose=True):
     opts = parse_args(input_args)
     args = get_config(opts.config)
+    args.seed = opts.seed
     # check arguments
     args, opts = check_args(args, opts)
     if verbose:
