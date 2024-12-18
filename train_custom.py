@@ -1,8 +1,9 @@
-import sys
-sys.path.append('/home/hrai/codes/hpe_library')
+import sys, getpass
+user = getpass.getuser()
+#sys.path.append('/home/hrai/codes/hpe_library')
 from hpe_library.lib_import import *
 from hpe_library. my_utils import *
-os.chdir('/home/hrai/codes/MotionBERT')
+os.chdir(f'/home/{user}/codes/MotionBERT')
 
 import os
 import numpy as np
@@ -56,7 +57,7 @@ def get_project_name(args):
 
 def main(args, opts, run=None):
     # Load dataset
-    train_loader_3d, test_loader, posetrack_loader_2d, instav_loader_2d, datareader = load_dataset(args, use_new_datareader=args.use_new_datareader)
+    train_loader_3d, test_loader, posetrack_loader_2d, instav_loader_2d, datareader = load_dataset(args, use_new_datareader=True)
     # Load model and checkpoint
     model_pos, chk_filename, checkpoint = load_model(opts, args)
     # main process

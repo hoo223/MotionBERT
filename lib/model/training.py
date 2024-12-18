@@ -334,8 +334,6 @@ def preprocess_train(args, batch_input, batch_gt, has_3d, has_gt):
             batch_gt = batch_gt - batch_gt[:,:,0:1,:] # move the pelvis to the origin for all frames
         else:
             batch_gt[:,:,:,2] = batch_gt[:,:,:,2] - batch_gt[:,0:1,0:1,2] # Place the depth of first frame root to 0. -> 첫번째 프레임의 depth를 0으로 설정
-        if args.input_centering:
-            batch_gt = batch_gt - batch_gt[:, :, 0:1, :]
         if batch_gt.shape[2] == 17:
             batch_gt_torso = batch_gt[:, :, [0, 1, 4, 7, 8, 9, 10, 11, 14], :]
             batch_gt_limb = batch_gt[:, :, [2, 3, 5, 6, 12, 13, 15, 16], :]

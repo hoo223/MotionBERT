@@ -61,11 +61,9 @@ def preprocess_eval(args, batch_input, batch_gt):
         batch_gt_virt = torch.einsum('bfij,bfjk->bfik', batch_gt, batch_R_orig2virt_from_3d_inv)
         batch_gt = batch_gt_virt
 
-    if args.rootrel:
-        batch_gt = batch_gt - batch_gt[:,:,0:1,:]
-    else:
-        #batch_gt[:,0,0,2] = 0
-        pass
+    if args.rootrel: batch_gt = batch_gt - batch_gt[:,:,0:1,:]
+    else:            batch_gt[:,0,0,2] = 0
+
     if batch_gt.shape[2] == 17:
         batch_gt_torso = batch_gt[:, :, [0, 1, 4, 7, 8, 9, 10, 11, 14], :]
         batch_gt_limb_pos = batch_gt[:, :, [2, 3, 5, 6, 12, 13, 15, 16], :]
@@ -126,6 +124,7 @@ def batch_inference_eval(args, model_pos, batch_input, batch_gt, batch_gt_torso,
 def postprocess_eval(args, predicted_3d_pos, batch_gt, batch_input):
     from hpe_library.my_utils.canonical import batch_rotation_matrix_from_vectors_torch
     if args.fix_orientation_pred: # virt -> original camera
+        print('args.fix_orientation_pred:', args.fix_orientation_pred)
         batch_v_origin_to_pelvis = batch_gt[:, :, 0]
         batch_v_origin_to_principle = torch.tensor([0, 0, 1], device=batch_gt.device).reshape(1, 1, 3).repeat(batch_gt.shape[0], batch_gt.shape[1], 1).float()
         assert batch_v_origin_to_principle.shape == batch_v_origin_to_pelvis.shape, (batch_v_origin_to_principle.shape, batch_v_origin_to_pelvis.shape)
@@ -152,17 +151,15 @@ def inference_eval(args, model_pos, test_loader, datareader, only_one_batch=Fals
     # pred_orig_all = []
     with torch.no_grad():
         for batch_input, batch_gt in tqdm(test_loader): # batch_input: normalized joint_2d, batch_gt: normalized joint3d_image
-            batch_size = len(batch_input)
             # preprocessing
             batch_gt_original = batch_gt.clone().detach().cuda()
             batch_input, batch_gt, batch_gt_torso, batch_gt_limb_pos = preprocess_eval(args, batch_input, batch_gt)
             # inference
             predicted_3d_pos = batch_inference_eval(args, model_pos, batch_input, batch_gt, batch_gt_torso, batch_gt_limb_pos)
-            predicted_3d_pos_orig = predicted_3d_pos.clone().detach()
+            #predicted_3d_pos_orig = predicted_3d_pos.clone().detach()
             # postprocessing
             predicted_3d_pos = postprocess_eval(args, predicted_3d_pos, batch_gt_original, batch_input)
-            if args.rootrel:
-                predicted_3d_pos[:,:,0,:] = 0     # [N,T,17,3]
+            if args.rootrel: predicted_3d_pos[:,:,0,:] = 0     # [N,T,17,3]
             if args.gt_2d: # input 2d를 추론값으로 사용함으로써 depth만 추정하도록 함
                 predicted_3d_pos[...,:2] = batch_input[...,:2]
             # store the results

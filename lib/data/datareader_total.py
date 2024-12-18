@@ -122,8 +122,7 @@ class DataReaderTotal(object):
                 elif data_type == 'action': dt_dataset[train_type][data_type] += [action]*num_frames
                 elif data_type == 'confidence': dt_dataset[train_type][data_type] += [np.ones(17)]*num_frames
                 elif data_type == 'world_3d': dt_dataset[train_type][data_type] += list(data[subject][action])
-                else:
-                    dt_dataset[train_type][data_type] += list(data[subject][action][cam_id])
+                else: dt_dataset[train_type][data_type] += list(data[subject][action][cam_id])
             for train_type in ['train', 'test']:
                 dt_dataset[train_type][data_type] = np.array(dt_dataset[train_type][data_type])
             if len(self.train_subject) == 0:
