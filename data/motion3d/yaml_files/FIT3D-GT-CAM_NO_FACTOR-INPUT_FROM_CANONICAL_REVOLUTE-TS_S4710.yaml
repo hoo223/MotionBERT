@@ -1,0 +1,37 @@
+adaptive_focal: false
+cam_list: []
+canonical_type: revolute
+data_type_list:
+- cam_3d
+- cam_3d_from_canonical_3d
+- joint_2d_from_canonical_3d
+dataset_name: fit3d
+gt_mode: cam_3d_from_canonical_3d
+input_mode: joint_2d_from_canonical_3d
+input_source: GT
+rand_pitch_mag: 0
+rand_pitch_period: 0
+rand_roll_mag: 0
+rand_roll_period: 0
+rand_yaw_mag: 0
+rand_yaw_period: 0
+sinu_pitch_mag: 0
+sinu_pitch_period: 546
+sinu_roll_mag: 0
+sinu_roll_period: 546
+sinu_yaw_mag: 0
+sinu_yaw_period: 546
+step_rot: 0
+test_cam: []
+test_subject:
+- s04
+- s07
+- s10
+train_cam: []
+train_subject:
+- s03
+- s05
+- S8
+- S9
+- S11
+univ: false
