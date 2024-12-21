@@ -33,3 +33,5 @@ data/cifar-10-batches-py/
 *.gz
 
 train2.sh
+
+*.xlsx

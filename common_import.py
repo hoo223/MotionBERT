@@ -5,7 +5,7 @@ from hpe_library.lib_import import *
 from hpe_library.my_utils import *
 from hpe_library.motionbert_utils import *
 from hpe_library.camera_models_utils import *
-os.chdir('/home/hrai/codes/MotionBERT')
+os.chdir(f'/home/{user}/codes/MotionBERT')
 
 # set the random seed
 random.seed(0)
@@ -201,5 +201,3 @@ default_data_aug={'step_rot': 0,
         'sinu_roll_mag': 0, 'sinu_roll_period': 273,'rand_yaw_mag': 0, 'rand_yaw_period': 0,
         'rand_pitch_mag': 0, 'rand_pitch_period': 0,'rand_roll_mag': 0, 'rand_roll_period': 0
         }
-
-os.chdir('/home/hrai/codes/MotionBERT')
