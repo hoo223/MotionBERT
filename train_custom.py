@@ -29,6 +29,7 @@ torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 
 def set_random_seed(seed):
+    print(f"Set random seed: {seed}")
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
