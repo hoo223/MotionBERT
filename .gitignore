@@ -35,3 +35,5 @@ data/cifar-10-batches-py/
 train2.sh
 
 *.xlsx
+
+saved_results/
