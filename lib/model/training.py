@@ -327,8 +327,10 @@ def preprocess_train(args, batch_input, batch_gt, has_3d, has_gt):
             batch_R2 = batch_rotation_matrix_from_vectors_torch(batch_v_origin_to_pelvis_proj_on_xz, batch_v_origin_to_principle)
             batch_R_orig2virt_from_3d = torch.einsum('bfij,bfjk->bfik', batch_R2, batch_R1)
             batch_R_orig2virt_from_3d_inv = torch.linalg.inv(batch_R_orig2virt_from_3d)
-            batch_gt_virt = torch.einsum('bfij,bfjk->bfik', batch_gt, batch_R_orig2virt_from_3d_inv)
-            batch_gt = batch_gt_virt
+            batch_gt_pelvis = batch_gt[:, :, 0:1, :]
+            batch_gt_hat = batch_gt - batch_gt_pelvis
+            batch_gt_virt = torch.einsum('bfij,bfjk->bfik', batch_gt_hat, batch_R_orig2virt_from_3d_inv)
+            batch_gt = batch_gt_virt + batch_gt_pelvis
 
         if args.rootrel: # root-relative 3D pose를 추론하도록 훈련
             batch_gt = batch_gt - batch_gt[:,:,0:1,:] # move the pelvis to the origin for all frames
