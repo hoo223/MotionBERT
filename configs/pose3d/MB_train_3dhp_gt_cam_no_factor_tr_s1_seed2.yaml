@@ -19,11 +19,7 @@ part_list: ['whole']
 denormalize_output: False
 
 # Model
-<<<<<<< HEAD
-model: 'MB_train_3dhp_gt_cam_no_factor_tr_s1'
-=======
 model: 'MB_train_3dhp_gt_cam_no_factor_tr_s1_seed2'
->>>>>>> 5c3c1b1 (update)
 maxlen: 243
 dim_feat: 512
 mlp_ratio: 2

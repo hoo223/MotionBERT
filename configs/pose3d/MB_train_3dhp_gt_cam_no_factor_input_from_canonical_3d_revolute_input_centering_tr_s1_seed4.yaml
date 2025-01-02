@@ -21,11 +21,7 @@ part_list: ['whole']
 denormalize_output: False
 
 # Model
-<<<<<<< HEAD
-model: 'MB_train_3dhp_gt_cam_no_factor_input_from_canonical_3d_revolute_input_centering_tr_s1'
-=======
 model: 'MotionBERT/configs/pose3d/MB_train_3dhp_gt_cam_no_factor_input_from_canonical_3d_revolute_input_centering_tr_s1_seed4.yaml'
->>>>>>> 5c3c1b1 (update)
 maxlen: 243
 dim_feat: 512
 mlp_ratio: 2
