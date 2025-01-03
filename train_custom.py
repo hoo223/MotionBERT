@@ -43,21 +43,16 @@ def get_project_name(args):
         project_name += 'Canonicalization_Network_'
     if 'h36m' in item:
         project_name += 'H36M'
-        if '_gt' in item:
-            project_name += '_GT'
-        else:
-            project_name += '-SH'
+        if '_gt' in item: project_name += '_GT'
+        else:             project_name += '-SH'
     elif 'fit3d' in item:
         project_name += 'FIT3D'
     elif 'kookmin' in item:
         project_name += 'KOOKMIN'
 
-    if '_ts_s4710' in item:
-        project_name += '-TS_S4710'
-    elif '_tr_s1_ts_s5678' in item:
-        project_name += '-TR_S1_TS_S5678'
-    elif '_s15678_tr_54138969_ts_others' in item:
-        project_name += '-S15678_TR_54138969_TS_OTHERS'
+    if '_ts_s4710' in item:                       project_name += '-TS_S4710'
+    elif '_tr_s1_ts_s5678' in item:               project_name += '-TR_S1_TS_S5678'
+    elif '_s15678_tr_54138969_ts_others' in item: project_name += '-S15678_TR_54138969_TS_OTHERS'
 
     return project_name
 

@@ -1,6 +1,6 @@
 import sys, getpass
 user = getpass.getuser()
-sys.path.append(f'/home/{user}/codes/')
+
 from hpe_library.lib_import import *
 from hpe_library.my_utils import *
 from hpe_library.motionbert_utils import *

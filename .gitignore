@@ -37,3 +37,9 @@ train2.sh
 *.xlsx
 
 saved_results/
+
+*.svg
+
+custom_codes/dataset_distribution_analysis/
+
+=4.2.0
