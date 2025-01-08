@@ -23,13 +23,11 @@ sinu_yaw_period: 546
 step_rot: 0
 test_cam: []
 test_subject:
-- S1
-- S5
 - S6
 - S7
 - S8
-- S9
-- S11
 train_cam: []
-train_subject: []
-univ: true
+train_subject:
+- S1
+- S5
+univ: false
