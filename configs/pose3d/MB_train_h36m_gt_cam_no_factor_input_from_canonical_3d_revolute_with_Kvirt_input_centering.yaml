@@ -3,7 +3,7 @@ train_2d: False
 no_eval: False
 finetune: False
 partial_train: null
-input_centering: False
+input_centering: True
 fix_orientation_pred: False
 test_run: False
 
@@ -21,7 +21,7 @@ part_list: ['whole']
 denormalize_output: False
 
 # Model
-model: 'MB_train_h36m_gt_cam_no_factor_input_from_canonical_3d_revolute_with_Kvirt'
+model: 'MB_train_h36m_gt_cam_no_factor_input_from_canonical_3d_revolute_with_Kvirt_input_centering'
 maxlen: 243
 dim_feat: 512
 mlp_ratio: 2
