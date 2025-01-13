@@ -1,14 +1,12 @@
-# General
+# General  
 train_2d: False
 no_eval: False
 finetune: False
 partial_train: null
 input_centering: True
-fix_orientation_pred: False
 test_run: False
-normalize_2d: False
 
-# Traning
+# Traning 
 epochs: 60
 checkpoint_frequency: 30
 batch_size: 16
@@ -18,11 +16,11 @@ weight_decay: 0.01
 lr_decay: 0.99
 
 # Test
-part_list: ['whole']
+part_list: ['whole'] 
 denormalize_output: False
 
 # Model
-model: 'MB_train_h36m_gt_cam_no_factor_input_from_canonical_3d_revolute_with_Kvirt_input_centering_seed4'
+model: 'MB_train_h36m_gt_cam_no_factor_tr_s15_ts_s678_input_centering'
 maxlen: 243
 dim_feat: 512
 mlp_ratio: 2
@@ -33,8 +31,8 @@ att_fuse: True
 
 # Data
 data_root: data/motion3d/MB3D_f243s81/
-subset_list: [H36M-GT-CAM_NO_FACTOR-INPUT_FROM_3D_CANONICAL_REVOLUTE_WITH_KVIRT]
-#dt_file: h36m_gt_canonical_3d_same_z_tr_s1_ts_s5678.pkl
+subset_list: [H36M-GT-CAM_NO_FACTOR-TR_S15_TS_S678]
+dt_file: h36m_gt_tr_s1_ts_s5678.pkl
 clip_len: 243
 data_stride: 81
 rootrel: True
@@ -42,8 +40,7 @@ sample_stride: 1
 num_joints: 17
 no_conf: False
 gt_2d: False
-input_mode: 'joint_2d_from_canonical_3d'
-gt_mode: 'cam_3d_from_canonical_3d' # in m
+gt_mode: 'cam_3d' # in m
 
 # Loss
 lambda_3d_pos: 1.0

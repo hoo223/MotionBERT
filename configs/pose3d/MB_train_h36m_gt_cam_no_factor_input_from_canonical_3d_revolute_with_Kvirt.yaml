@@ -6,6 +6,7 @@ partial_train: null
 input_centering: False
 fix_orientation_pred: False
 test_run: False
+normalize_2d: False
 
 # Traning
 epochs: 60
