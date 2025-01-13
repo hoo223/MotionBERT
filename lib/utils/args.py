@@ -24,6 +24,7 @@ def get_opt_args_from_model_name(checkpoint, config_root = 'configs/pose3d/', ch
         else: raise ValueError(f'Unknown fit3d model {checkpoint}')
     elif 'h36m' in checkpoint:
         if 'tr_s1_ts_s5678' in checkpoint: checkpoint_root = 'checkpoint/pose3d_h36m_tr_s1_ts_s5678/'
+        elif 'tr_s15_ts_s678' in checkpoint: checkpoint_root = 'checkpoint/pose3d_h36m_tr_s15_ts_s678/'
         else: checkpoint_root = 'checkpoint/pose3d_h36m/'
     assert mode in ['best', 'latest'], 'mode should be best or lastest'
     bin_file = '/' + mode + '_epoch.bin'
