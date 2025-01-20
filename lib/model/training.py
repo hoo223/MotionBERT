@@ -34,8 +34,13 @@ def train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise RuntimeError('Unable to create checkpoint directory:', opts.checkpoint)
-    train_writer = tensorboardX.SummaryWriter(os.path.join(opts.checkpoint, "logs"))
+    train_writer = tensorboardX.SummaryWriter(os.path.join(opts.checkpoint, "logs")) # tensorboard writer
 
+    # train only the layers specified by args.partial_train
+    if args.partial_train:
+        model_pos = partial_train_layers(model_pos, args.partial_train)
+
+    # if args.finetune_only_head, freeze all layers except head and pre_logits
     if args.finetune_only_head:
         for name, parameter in model_pos.named_parameters():
             if ('head' in name) or ('pre_logits' in name):
@@ -43,25 +48,28 @@ def train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2
             else:
                 parameter.requires_grad = False
 
+    # Count trainable parameters
     model_params = 0
     for parameter in model_pos.parameters():
         if parameter.requires_grad:
             model_params = model_params + parameter.numel()
     print('INFO: Trainable parameter count:', model_params)
 
-    if args.partial_train:
-        model_pos = partial_train_layers(model_pos, args.partial_train)
-
+    # Initialize optimizer and hyperparameters
     min_loss = 100000
     lr = args.learning_rate
     optimizer = optim.AdamW(filter(lambda p: p.requires_grad, model_pos.parameters()), lr=lr, weight_decay=args.weight_decay)
     lr_decay = args.lr_decay
     st = 0
     args.start_epoch = 0
+
+    # print training information
     if args.train_2d:
         print('INFO: Training on {}(3D)+{}(2D) batches'.format(len(train_loader_3d), len(instav_loader_2d) + len(posetrack_loader_2d)))
     else:
         print('INFO: Training on {}(3D) batches'.format(len(train_loader_3d)))
+
+    # Load training state from checkpoint
     if opts.resume:
         st = checkpoint['epoch']
         args.start_epoch = st
@@ -73,6 +81,7 @@ def train(args, opts, checkpoint, model_pos, train_loader_3d, posetrack_loader_2
         if 'min_loss' in checkpoint and checkpoint['min_loss'] is not None:
             min_loss = checkpoint['min_loss']
 
+    # Masking and noise augmentation
     args.mask = (args.mask_ratio > 0 and args.mask_T_ratio > 0)
     if args.mask or args.noise:
         args.aug = Augmenter2D(args)
