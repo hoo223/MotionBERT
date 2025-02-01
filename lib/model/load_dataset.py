@@ -14,7 +14,7 @@ import os
 
 import numpy as np
 
-def load_dataset(args, use_new_datareader=False):
+def load_dataset(args, use_new_datareader=False, verbose=True):
     print('Loading dataset...')
     trainloader_params = {
           'batch_size': args.batch_size,
@@ -52,7 +52,8 @@ def load_dataset(args, use_new_datareader=False):
                                               data_stride_test=args.clip_len,
                                               subset_list=args.subset_list,
                                               default_data_type_list=args.default_data_type_list,
-                                              normalize_2d=args.normalize_2d)
+                                              normalize_2d=args.normalize_2d,
+                                              verbose=verbose)
         else:
             raise ValueError('Subset list is empty')
 

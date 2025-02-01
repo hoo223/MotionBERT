@@ -210,7 +210,8 @@ def get_clip_info(args, datareader, results_all):
 def calculate_eval_metric(args, results_all, datareader, verbose=True):
     try:
         num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions = datareader.get_clip_info(args, len(results_all))
-    except:
+    except Exception as e:
+        print(e)
         num_test_frames, action_clips, factor_clips, source_clips, frame_clips, gt_clips, actions = get_clip_info(args, datareader, results_all)
 
     total_result_dict = {}
