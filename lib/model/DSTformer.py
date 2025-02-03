@@ -98,7 +98,7 @@ class Attention(nn.Module):
         self.mode = st_mode
         if self.mode == 'parallel':
             self.ts_attn = nn.Linear(dim*2, dim*2)
-            self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias) 
+            self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         else: # spatial, temporal
             self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias) # 256 -> 256 x 3
         self.proj_drop = nn.Dropout(proj_drop)
@@ -108,7 +108,7 @@ class Attention(nn.Module):
 
     def forward(self, x, seqlen=1): # x=(BxF, 17, 256), seqlen=243
         B, N, C = x.shape # (BxF, 17, 256)
-        
+
         if self.mode == 'series':
             qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
             q, k, v = qkv[0], qkv[1], qkv[2]   # make torchscript happy (cannot use tensor as tuple)
@@ -121,7 +121,7 @@ class Attention(nn.Module):
             q, k, v = qkv[0], qkv[1], qkv[2]   # make torchscript happy (cannot use tensor as tuple)
             x_t = self.forward_temporal(q, k, v, seqlen=seqlen)
             x_s = self.forward_spatial(q, k, v)
-            
+
             alpha = torch.cat([x_s, x_t], dim=-1)
             alpha = alpha.mean(dim=1, keepdim=True)
             alpha = self.ts_attn(alpha).reshape(B, 1, C, 2)
@@ -148,7 +148,7 @@ class Attention(nn.Module):
         x = self.proj(x) # (BxF, 17, 256) -> (BxF, 17, 256)
         x = self.proj_drop(x)
         return x
-    
+
     def reshape_T(self, x, seqlen=1, inverse=False):
         if not inverse:
             N, C = x.shape[-2:]
@@ -158,7 +158,7 @@ class Attention(nn.Module):
             TN, C = x.shape[-2:]
             x = x.reshape(-1, self.num_heads, seqlen, TN // seqlen, C).transpose(1,2)
             x = x.reshape(-1, self.num_heads, TN // seqlen, C) #(BT, H, N, C)
-        return x 
+        return x
 
     def forward_coupling(self, q, k, v, seqlen=8):
         BT, _, N, C = q.shape
@@ -185,10 +185,10 @@ class Attention(nn.Module):
         x = attn @ v # BxF, 8, 17, 17) @ (BxF, 8, 17, 32) = (BxF, 8, 17, 32)
         x = x.transpose(1,2).reshape(B, N, C*self.num_heads) # x: (BxF, 8, 17, 32) -> transpose: (BxF, 17, 8, 32) -> reshape: (BxF, 17, 32x8) = (BxF, 17, 256)
         return x
-        
+
     def forward_temporal(self, q, k, v, seqlen=8): # q, k, v: (BxF, 8, 17, 32), seqlen=243
         B, _, N, C = q.shape
-        qt = q.reshape(-1, seqlen, self.num_heads, N, C).permute(0, 2, 3, 1, 4) # (BxF, 8, 17, 32) -> reshape: (B, 243, 8, 17, 32) -> permute: (B, 8, 17, 243, 32) # (B, H, N, T, C) 
+        qt = q.reshape(-1, seqlen, self.num_heads, N, C).permute(0, 2, 3, 1, 4) # (BxF, 8, 17, 32) -> reshape: (B, 243, 8, 17, 32) -> permute: (B, 8, 17, 243, 32) # (B, H, N, T, C)
         kt = k.reshape(-1, seqlen, self.num_heads, N, C).permute(0, 2, 3, 1, 4) # (BxF, 8, 17, 32) -> reshape: (B, 243, 8, 17, 32) -> permute: (B, 8, 17, 243, 32) # (B, H, N, T, C)
         vt = v.reshape(-1, seqlen, self.num_heads, N, C).permute(0, 2, 3, 1, 4) # (BxF, 8, 17, 32) -> reshape: (B, 243, 8, 17, 32) -> permute: (B, 8, 17, 243, 32) # (B, H, N, T, C)
 
@@ -225,10 +225,10 @@ class Block(nn.Module):
             dim, num_heads=num_heads, qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop, st_mode="spatial")
         self.attn_t = Attention(
             dim, num_heads=num_heads, qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop, st_mode="temporal")
-        
+
         # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
-        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity() 
-        # DropPath: 확률적으로 skip connection(x+f(x)에서 f(x))만 남기는 regularization 방법 
+        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        # DropPath: 확률적으로 skip connection(x+f(x)에서 f(x))만 남기는 regularization 방법
         # nn.Identity(): 입력값을 그대로 출력하는 layer
         self.norm2_s = norm_layer(dim)
         self.norm2_t = norm_layer(dim)
@@ -268,30 +268,30 @@ class Block(nn.Module):
         else:
             raise NotImplementedError(self.st_mode)
         return x
-    
+
 class DSTformer(nn.Module):
     def __init__(self, dim_in=3, dim_out=3, dim_feat=256, dim_rep=512,
-                 depth=5, num_heads=8, mlp_ratio=4, 
-                 num_joints=17, maxlen=243, 
+                 depth=5, num_heads=8, mlp_ratio=4,
+                 num_joints=17, maxlen=243,
                  qkv_bias=True, qk_scale=None, drop_rate=0., attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm, att_fuse=True):
         super().__init__()
         self.dim_out = dim_out
         self.dim_feat = dim_feat
         self.joints_embed = nn.Linear(dim_in, dim_feat) # FC layer before DSTformer - (BxF, 17, 3) -> (BxF, 17, 256)
-        self.pos_drop = nn.Dropout(p=drop_rate) 
+        self.pos_drop = nn.Dropout(p=drop_rate)
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, depth)]  # stochastic depth decay rule
         # spatial-temporal block
         self.blocks_st = nn.ModuleList([
             Block(
                 dim=dim_feat, num_heads=num_heads, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
-                drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i], norm_layer=norm_layer, 
+                drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i], norm_layer=norm_layer,
                 st_mode="stage_st")
             for i in range(depth)])
         # temporal-spatial block
         self.blocks_ts = nn.ModuleList([
             Block(
                 dim=dim_feat, num_heads=num_heads, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
-                drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i], norm_layer=norm_layer, 
+                drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[i], norm_layer=norm_layer,
                 st_mode="stage_ts")
             for i in range(depth)])
         self.norm = norm_layer(dim_feat)
@@ -302,7 +302,7 @@ class DSTformer(nn.Module):
             ]))
         else:
             self.pre_logits = nn.Identity()
-        self.head = nn.Linear(dim_rep, dim_out) if dim_out > 0 else nn.Identity() # final FC layer 
+        self.head = nn.Linear(dim_rep, dim_out) if dim_out > 0 else nn.Identity() # final FC layer
         self.temp_embed = nn.Parameter(torch.zeros(1, maxlen, 1, dim_feat)) # learnable temporal positional encoding - (1, 243, 1, 256)
         self.pos_embed = nn.Parameter(torch.zeros(1, num_joints, dim_feat)) # learnable spatial positional encoding - (1, 17, 256)
         trunc_normal_(self.temp_embed, std=.02)
@@ -331,7 +331,7 @@ class DSTformer(nn.Module):
         self.dim_out = dim_out
         self.head = nn.Linear(self.dim_feat, dim_out) if dim_out > 0 else nn.Identity()
 
-    def forward(self, x, return_rep=False):   
+    def forward(self, x, return_rep=False):
         B, F, J, C = x.shape # Batch, Frame, Joint, Channel
         x = x.reshape(-1, J, C) # Batch*Frame, Joint, Channel
         BF = x.shape[0]
@@ -351,7 +351,7 @@ class DSTformer(nn.Module):
                 alpha = torch.cat([x_st, x_ts], dim=-1) # (BxF, 17, 512)
                 BF, J = alpha.shape[:2]
                 alpha = att(alpha) # (BxF, 17, 512) -> (BxF, 17, 2)
-                alpha = alpha.softmax(dim=-1) 
+                alpha = alpha.softmax(dim=-1)
                 x = x_st * alpha[:,:,0:1] + x_ts * alpha[:,:,1:2] # eq.(4) # (BxF, 17, 256)
             else:
                 x = (x_st + x_ts)*0.5 # average # (BxF, 17, 256)
@@ -365,4 +365,3 @@ class DSTformer(nn.Module):
 
     def get_representation(self, x):
         return self.forward(x, return_rep=True)
-    
