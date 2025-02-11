@@ -185,7 +185,7 @@ class DataReaderTotal(object):
         if self.gt_mode == 'joint3d_image': # normalize to [-1, 1]
             train_labels = self.normalize(train_labels, train_W, train_H, mode='3d')
             test_labels = self.normalize(test_labels, test_W, test_H, mode='3d')
-        elif self.gt_mode == 'world_3d' or self.gt_mode == 'cam_3d' or self.gt_mode == 'cam_3d_from_canonical_3d':
+        elif self.gt_mode in ['world_3d', 'cam_3d', 'cam_3d_from_canonical_3d', 'img_3d_norm', 'img_3d_norm_canonical']:
             pass
         elif self.gt_mode == 'joint_2d_from_canonical_3d':
             temp_input_mode = self.input_mode
@@ -267,10 +267,12 @@ class DataReaderTotal(object):
     def get_clip_info(self, args, num_results_all):
         _, split_id_test = self.get_split_id() # [range(0, 243) ... range(102759, 103002)]
         actions = np.array(self.dt_dataset['test']['action']) # 103130 ['squat' ...  'kneeup']
-        try:
-            factors = np.array(self.dt_dataset['test']['2.5d_factor']) # 103130 [3.49990559 ... 2.09230852]
-        except: # if no factor
-            factors = np.ones_like(actions)
+        if args.scale_consistency:
+            if 'canonical' in self.gt_mode: factors = np.array(self.dt_dataset['test']['scale_factor_norm_canonical'])
+            else:                           factors = np.array(self.dt_dataset['test']['scale_factor_norm'])
+        else:
+            try:    factors = np.array(self.dt_dataset['test']['2.5d_factor']) # 103130 [3.49990559 ... 2.09230852]
+            except: factors = np.ones_like(actions) # if no factor
         gts = np.array(self.dt_dataset['test'][args.mpjpe_mode])
         sources = np.array(self.dt_dataset['test']['source']) # 103130 ['S02_6_squat_001' ... 'S08_4_kneeup_001']
 
@@ -436,8 +438,12 @@ class DataReaderTotalGroup(object):
         total_gts = np.empty([0, 17, 3])
         for subset in self.datareader.keys():
             total_actions = np.concatenate([total_actions, self.datareader[subset].dt_dataset['test']['action']], axis=0)
-            try: total_factors = np.concatenate([total_factors, self.datareader[subset].dt_dataset['test']['2.5d_factor']], axis=0)
-            except: total_factors = np.ones_like(total_actions)
+            if args.scale_consistency:
+                if 'canonical' in self.datareader[subset].gt_mode: total_factors = np.concatenate([total_factors, self.datareader[subset].dt_dataset['test']['scale_factor_norm_canonical']], axis=0)
+                else:                                               total_factors = np.concatenate([total_factors, self.datareader[subset].dt_dataset['test']['scale_factor_norm']], axis=0)
+            else:
+                try: total_factors = np.concatenate([total_factors, self.datareader[subset].dt_dataset['test']['2.5d_factor']], axis=0)
+                except: total_factors = np.ones_like(total_actions)
             total_sources = np.concatenate([total_sources, self.datareader[subset].dt_dataset['test']['source']], axis=0)
             total_gts = np.concatenate([total_gts, self.datareader[subset].dt_dataset['test'][args.mpjpe_mode]], axis=0)
 

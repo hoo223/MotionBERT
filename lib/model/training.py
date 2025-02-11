@@ -415,6 +415,8 @@ def inference_train(args, model_pos, batch_input, batch_gt, batch_gt_torso):
 
     else:
         predicted_3d_pos = model_pos(batch_input)    # (N, T, 17, 3)
+        if args.input_residual_connection:
+            predicted_3d_pos[...,:2] += batch_input[...,:2]
         if args.lambda_dh_angle > 0:
             pred_angle = get_limb_angle(predicted_3d_pos)
             gt_angle = get_limb_angle(batch_gt)

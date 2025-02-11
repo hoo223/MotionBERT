@@ -119,6 +119,8 @@ def batch_inference_eval(args, model_pos, batch_input, batch_gt, batch_gt_torso,
         else:
             predicted_3d_pos = model_pos(batch_input)
 
+    if args.input_residual_connection:
+        predicted_3d_pos[..., :2] += batch_input[..., :2]
     return predicted_3d_pos
 
 def postprocess_eval(args, predicted_3d_pos, batch_gt, batch_input):
@@ -276,10 +278,12 @@ def calculate_eval_metric(args, results_all, datareader, verbose=True):
         factor = factor_clips[idx][:,None,None]
         gt = gt_clips[idx]
         pred = results_all[idx]
-        if args.mpjpe_mode == 'joints_2.5d_image':
-            pred *= factor # scaling image to world (mm) scale
-            if args.gt_mode == 'joint3d_image':
-                gt *= factor
+        if args.gt_mode == 'joint3d_image' and args.mpjpe_mode == 'joints_2.5d_image':
+            pred *= factor # scaling image to world (mm) scaler
+        elif args.gt_mode == 'img_3d_norm' and args.mpjpe_mode == 'cam_3d':
+            pred /= factor
+        elif args.gt_mode == 'img_3d_norm_canonical' and args.mpjpe_mode == 'cam_3d_canonical':
+            pred /= factor
 
         # Root-relative Errors
         if (args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total4', 'DHDSTformer_total5', 'DHDSTformer_total6', 'DHDSTformer_total7', 'DHDSTformer_total8', 'DHDSTformer_torso', 'DHDSTformer_torso_limb', 'DHDSTformer_right_upper_arm2']) or ('MB' in args.model): # only model that predict pelvis point
@@ -342,7 +346,7 @@ def calculate_eval_metric(args, results_all, datareader, verbose=True):
             else:
                 err1 = np.mean(err1_per_joint[:, joint_list], axis=1) # mpjpe(pred, gt) # (243, )
                 err2 = np.mean(err2_per_joint[:, joint_list], axis=1) # p_mpjpe(pred, gt)
-            if 'NO_FACTOR' in args.subset_list[0]:
+            if 'NO_FACTOR' in args.subset_list[0] or 'SCALE_FACTOR_NORM' in args.subset_list[0]:
                 err1 *= 1000
                 err2 *= 1000
             total_result_dict[part]['e1_all'][frame_list] += err1 # (243, ) # 각 프레임 별 에러를 더해줌

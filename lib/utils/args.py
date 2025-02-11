@@ -168,5 +168,11 @@ def check_args(args, opts):
     # use_new_datareader
     try: test = args.use_new_datareader
     except: args.use_new_datareader = True
+    # 2D-3D scale_consistency
+    try: test = args.scale_consistency
+    except: args.scale_consistency = False
+    # input_residual_connection
+    try: test = args.input_residual_connection
+    except: args.input_residual_connection = False
 
     return args, opts
