@@ -6,16 +6,13 @@ from timm.models.layers import DropPath
 import os,sys
 sys.path.append(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from model.modules.attention import Attention
-from model.modules.mlp import MLP
-from model.modules.crossattention import CrossAttention
-from model.modules.ModelBlock import MIBlock
-os.environ['CUDA_VISIBLE_DEVICES'] = '0' 
+from modules.attention import Attention
+from modules.mlp import MLP
+from modules.crossattention import CrossAttention
+from modules.ModelBlock import MIBlock
 
 
 class TransBlock(nn.Module):
-
-
     def __init__(self, dim, mlp_ratio=4., act_layer=nn.GELU, attn_drop=0., drop=0., drop_path=0.,
                  num_heads=8, qkv_bias=False, qk_scale=None, use_layer_scale=True, layer_scale_init_value=1e-5,
                  mode='spatial', mixer_type="attention", use_temporal_similarity=True,
