@@ -11,7 +11,7 @@ test_run: False
 
 # Traning
 epochs: 90
-checkpoint_frequency: 30
+checkpoint_frequency: 5
 batch_size: 4
 dropout: 0.0
 learning_rate: 0.0005
