@@ -284,9 +284,9 @@ def calculate_eval_metric(args, results_all, datareader, verbose=True):
             pred /= factor
 
         # Root-relative Errors
-        if (args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total4', 'DHDSTformer_total5', 'DHDSTformer_total6', 'DHDSTformer_total7', 'DHDSTformer_total8', 'DHDSTformer_torso', 'DHDSTformer_torso_limb', 'DHDSTformer_right_upper_arm2']) or ('MB' in args.model): # only model that predict pelvis point
-            pred = pred - pred[:,0:1,:] # (243, 17, 3)
-            gt = gt - gt[:,0:1,:] # (243, 17, 3)
+        # if (args.model in ['DHDSTformer_total', 'DHDSTformer_total2', 'DHDSTformer_total3', 'DHDSTformer_total4', 'DHDSTformer_total5', 'DHDSTformer_total6', 'DHDSTformer_total7', 'DHDSTformer_total8', 'DHDSTformer_torso', 'DHDSTformer_torso_limb', 'DHDSTformer_right_upper_arm2']) or ('MB' in args.model): # only model that predict pelvis point
+        pred = pred - pred[:,0:1,:] # (243, 17, 3)
+        gt = gt - gt[:,0:1,:] # (243, 17, 3)
 
         if 'DHDSTformer_torso' in args.model:
             gt = gt[:, [0, 1, 4, 7, 8, 9, 10, 11, 14], :] # (243, 9, 3) only torso point
