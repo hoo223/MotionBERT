@@ -45,6 +45,8 @@ def construct_include(loader: Loader, node: yaml.Node) -> Any:
 
 def get_config(config_path):
     yaml.add_constructor('!include', construct_include, Loader)
+    import os
+    print(os.getcwd())
     with open(config_path, 'r') as stream:
         config = yaml.load(stream, Loader=Loader)
     config = edict(config)

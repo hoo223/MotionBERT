@@ -27,11 +27,13 @@ class DataReaderTotal(object):
         with open(os.path.join(yaml_path), 'r') as file:
             self.yaml_data = yaml.load(file, Loader=yaml.FullLoader)
         self.dataset_name   = self.yaml_data['dataset_name']
+        self.default_data_type_list = default_data_type_list
         self.data_type_list = self.yaml_data['data_type_list'] + default_data_type_list
         self.canonical_type = self.yaml_data['canonical_type']
         self.input_source   = self.yaml_data['input_source']
         self.input_mode     = self.yaml_data['input_mode']
         self.gt_mode        = self.yaml_data['gt_mode']
+        self.mpjpe_mode     = self.yaml_data['mpjpe_mode']
         self.univ           = self.yaml_data['univ']
         try:
             self.train_subject  = self.yaml_data['train_subject']
@@ -57,7 +59,6 @@ class DataReaderTotal(object):
                          'rand_roll_period': self.yaml_data['rand_roll_period'],
                         }
 
-        self.default_data_type_list = default_data_type_list
         self.overwrite_list = overwrite_list
         self.gt_trainset    = None
         self.gt_testset     = None
@@ -72,8 +73,10 @@ class DataReaderTotal(object):
         self.source_tag = source_tag
         self.normalize_2d = normalize_2d
 
+        print(f"Loading data type: {self.data_type_list}")
         assert self.input_mode in self.data_type_list, f'{self.input_mode} should be in data_type_list {self.data_type_list}'
         assert self.gt_mode in self.data_type_list, f'{self.gt_mode} should be in data_type_list {self.data_type_list}'
+        assert self.mpjpe_mode in self.data_type_list, f'{self.mpjpe_mode} should be in data_type_list {self.data_type_list}'
 
         self.dt_dataset = self.generate_total_dataset(verbose)
 
@@ -84,7 +87,7 @@ class DataReaderTotal(object):
 
         for data_type in self.data_type_list:
             # type mapping
-            if data_type == 'cam_3d_from_canonical_3d':          load_type = 'cam_3d_canonical'
+            if data_type   == 'cam_3d_from_canonical_3d':        load_type = 'cam_3d_canonical'
             elif data_type == 'joint_2d':                        load_type = 'img_2d'
             elif data_type == 'joint_2d_from_canonical_3d':      load_type = 'img_2d_canonical'
             elif data_type == 'joint3d_image':                   load_type = 'img_3d'

@@ -14,10 +14,8 @@ def evaluate(args, model_pos, test_loader, datareader, checkpoint, only_one_batc
     else:
         if verbose:
             try:
-                if args.start_epoch:
-                    print(f"Evalute model on epoch {checkpoint['epoch']} (epoch starts from {args.start_epoch})")
-                else:
-                    print(f"Evalute model on epoch {checkpoint['epoch']}")
+                if args.start_epoch: print(f"Evalute model on epoch {checkpoint['epoch']} (epoch starts from {args.start_epoch})")
+                else:                print(f"Evalute model on epoch {checkpoint['epoch']}")
             except:
                 print('No epoch information in the checkpoint')
         # get inference results
@@ -282,7 +280,7 @@ def calculate_eval_metric(args, results_all, datareader, verbose=True):
             pred *= factor # scaling image to world (mm) scaler
         elif args.gt_mode == 'img_3d_norm' and args.mpjpe_mode == 'cam_3d':
             pred /= factor
-        elif args.gt_mode == 'img_3d_norm_canonical' and args.mpjpe_mode == 'cam_3d_canonical':
+        elif args.gt_mode == 'img_3d_norm_canonical' and args.mpjpe_mode == 'cam_3d_from_canonical_3d':
             pred /= factor
 
         # Root-relative Errors
