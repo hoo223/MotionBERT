@@ -264,8 +264,9 @@ class MemoryInducedBlock(nn.Module):
         x = list(torch.chunk(x,3,dim=1))
 
         for i in range(3):
-            x[i] = x[i] + self.drop_path(self.layer_scale[i].unsqueeze(0).unsqueeze(0) * self.local_attention_list[i](self.local_norms[i](x[i])))
-            x[i] = x[i] + self.drop_path(self.layer_scale[i+3].unsqueeze(0).unsqueeze(0) * self.loacl_mlps[i](self.local_norms[i+3](x[i])))
+            device = x[i].device  
+            x[i] = x[i] + self.drop_path(self.layer_scale[i].to(device).unsqueeze(0).unsqueeze(0) * self.local_attention_list[i](self.local_norms[i](x[i])).to(device))
+            x[i] = x[i] + self.drop_path(self.layer_scale[i+3].to(device).unsqueeze(0).unsqueeze(0) * self.loacl_mlps[i](self.local_norms[i+3](x[i])).to(device))
 
         x = torch.cat(x,dim=1)
 

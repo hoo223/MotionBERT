@@ -10,11 +10,11 @@ input_residual_connection: True
 test_run: False
 
 # Traning
-epochs: 60
+epochs: 90
 checkpoint_frequency: 30
-batch_size: 16
+batch_size: 4
 dropout: 0.0
-learning_rate: 0.0002
+learning_rate: 0.0005
 weight_decay: 0.01
 lr_decay: 0.99
 

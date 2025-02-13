@@ -114,7 +114,7 @@ def load_backbone(args):
             'relu': nn.ReLU,
             'symsum': SymSum
         }
-        model = MemoryInducedTransformer(n_layers=args.n_layers,
+        model_backbone = MemoryInducedTransformer(n_layers=args.n_layers,
                                dim_in=args.dim_in,
                                dim_feat=args.dim_feat,
                                dim_rep=args.dim_rep,
