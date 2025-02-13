@@ -6,10 +6,10 @@ from timm.models.layers import DropPath
 import os,sys
 sys.path.append(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from modules.attention import Attention
-from modules.mlp import MLP
-from modules.crossattention import CrossAttention
-from modules.ModelBlock import MIBlock
+from lib.utils.model.modules.attention import Attention
+from lib.utils.model.modules.mlp import MLP
+from lib.utils.model.modules.crossattention import CrossAttention
+from lib.utils.model.modules.ModelBlock import MIBlock
 
 
 class TransBlock(nn.Module):
