@@ -1,11 +1,12 @@
-import sys, getpass
+import sys, getpass, os
 user = getpass.getuser()
 
+os.chdir(f'/home/{user}/codes/MotionBERT')
 from hpe_library.lib_import import *
 from hpe_library.my_utils import *
 from hpe_library.motionbert_utils import *
 from hpe_library.camera_models_utils import *
-os.chdir(f'/home/{user}/codes/MotionBERT')
+
 
 # set the random seed
 random.seed(0)
